@@ -18,11 +18,7 @@ void main() async {
   await ScoreManager.init();
   MusicService.instance.init(); // non-blocking request
 
-  runApp(
-    const ProviderScope(
-      child: CubixBlastApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: CubixBlastApp()));
 }
 
 class CubixBlastApp extends StatelessWidget {

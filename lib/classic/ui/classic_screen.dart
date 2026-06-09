@@ -11,6 +11,7 @@ import 'package:cubix_blast/ui/widgets/score_board.dart';
 import 'package:cubix_blast/ui/widgets/overlay_menu.dart';
 import 'package:cubix_blast/ui/widgets/next_piece_preview.dart';
 
+import 'package:cubix_blast/ui/widgets/game_gesture_detector.dart';
 import 'package:cubix_blast/ui/widgets/audio_visualizer_bg.dart';
 import 'package:cubix_blast/ui/widgets/hold_piece_preview.dart';
 
@@ -22,14 +23,13 @@ class ClassicScreen extends StatefulWidget {
   State<ClassicScreen> createState() => _ClassicScreenState();
 }
 
-class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserver {
+class _ClassicScreenState extends State<ClassicScreen>
+    with WidgetsBindingObserver {
   late final ClassicEngine _engine;
   final ValueNotifier<int> _frameNotifier = ValueNotifier(0);
   final FocusNode _focusNode = FocusNode();
 
   double _accumulatedPanX = 0;
-  double _panStartX = 0;
-  double _panStartY = 0;
   bool _panVerticalTriggered = false;
 
   @override
@@ -50,7 +50,9 @@ class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserv
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if ((state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) &&
+    if ((state == AppLifecycleState.paused ||
+            state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.hidden) &&
         _engine.state.status == GameStatus.playing) {
       _engine.togglePause();
     }
@@ -93,17 +95,20 @@ class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserv
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: KeyboardListener(
-        focusNode: _focusNode,
-        autofocus: true,
-        onKeyEvent: _handleKey,
-        child: GameLoopWidget(
-          engine: _engine,
-          frameNotifier: _frameNotifier,
-          builder: (context) => Stack(
-            children: [
-              _buildLayout(),
-            ],
+      body: GameGestureDetector(
+        onMoveLeft: _engine.moveLeft,
+        onMoveRight: _engine.moveRight,
+        onHardDrop: _engine.hardDrop,
+        onHoldPiece: _engine.holdPiece,
+        onRotateClockwise: _engine.rotateClockwise,
+        child: KeyboardListener(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: _handleKey,
+          child: GameLoopWidget(
+            engine: _engine,
+            frameNotifier: _frameNotifier,
+            builder: (context) => Stack(children: [_buildLayout()]),
           ),
         ),
       ),
@@ -117,156 +122,149 @@ class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserv
         final maxW = constraints.maxWidth;
         final canvasW = (maxH * 0.5).clamp(0.0, maxW * 0.5);
         final canvasH = canvasW * 2; // 10:20 ratio
-        
+
         final theme = GameThemes.getTheme(ScoreManager.currentTheme);
-        final currentColor = theme.backgroundColors[(_engine.state.level - 1) % theme.backgroundColors.length];
+        final currentColor =
+            theme.backgroundColors[(_engine.state.level - 1) %
+                theme.backgroundColors.length];
         final tempo = 1.0 + (_engine.state.level * 0.15);
 
         return Stack(
           children: [
             Positioned.fill(
-              child: AudioVisualizerBg(color: currentColor, tempoMultiplier: tempo),
+              child: AudioVisualizerBg(
+                color: currentColor,
+                tempoMultiplier: tempo,
+              ),
             ),
             Column(
               children: [
                 Expanded(
                   child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'HOLD',
-                        style: TextStyle(
-                          fontSize: 10,
-                          letterSpacing: 3,
-                          color: const Color(0xFF00E5FF).withValues(alpha: 0.7),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'HOLD',
+                              style: TextStyle(
+                                fontSize: 10,
+                                letterSpacing: 3,
+                                color: const Color(
+                                  0xFF00E5FF,
+                                ).withValues(alpha: 0.7),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            HoldPiecePreview(
+                              piece: _engine.heldPiece,
+                              canHold: _engine.canHold,
+                            ),
+                            const SizedBox(height: 24),
+                            ScoreBoard(
+                              state: _engine.state,
+                              highScore: _engine.highScore,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      HoldPiecePreview(piece: _engine.heldPiece, canHold: _engine.canHold),
-                      const SizedBox(height: 24),
-                      ScoreBoard(state: _engine.state, highScore: _engine.highScore),
-                    ],
-                  ),
-                  ),
-                  const SizedBox(width: 12),
+                      const SizedBox(width: 12),
 
-                  GestureDetector(
-                    onPanStart: (details) {
-                      _panStartX = details.localPosition.dx;
-                      _panStartY = details.localPosition.dy;
-                      _accumulatedPanX = 0;
-                      _panVerticalTriggered = false;
-                    },
-                    onPanUpdate: (details) {
-                      if (_panVerticalTriggered) return;
-
-                      final dy = details.localPosition.dy - _panStartY;
-                      final dx = details.localPosition.dx - _panStartX;
-
-                      if (dy.abs() > 40 && dy.abs() > dx.abs()) {
-                        _panVerticalTriggered = true;
-                        if (dy > 0) {
-                          _engine.hardDrop();
-                        } else {
-                          _engine.holdPiece();
-                        }
-                        return;
-                      }
-
-                      _accumulatedPanX += details.delta.dx;
-                      const threshold = 30.0;
-                      while (_accumulatedPanX > threshold) {
-                        _engine.moveRight();
-                        _accumulatedPanX -= threshold;
-                      }
-                      while (_accumulatedPanX < -threshold) {
-                        _engine.moveLeft();
-                        _accumulatedPanX += threshold;
-                      }
-                    },
-                    onTap: () => _engine.rotateClockwise(),
-                    child: Transform.translate(
-                      offset: Offset(
-                        _engine.shakeTimer > 0 ? (sin(_engine.state.elapsedSeconds * 50) * 15 * _engine.shakeTimer) : 0,
-                        _engine.shakeTimer > 0 ? (cos(_engine.state.elapsedSeconds * 60) * 15 * _engine.shakeTimer) : 0,
-                      ),
-                      child: Container(
-                        width: canvasW,
-                        height: canvasH,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0xFF1A2332),
-                          width: 2,
+                      Transform.translate(
+                        offset: Offset(
+                          _engine.shakeTimer > 0
+                              ? (sin(_engine.state.elapsedSeconds * 50) *
+                                    15 *
+                                    _engine.shakeTimer)
+                              : 0,
+                          _engine.shakeTimer > 0
+                              ? (cos(_engine.state.elapsedSeconds * 60) *
+                                    15 *
+                                    _engine.shakeTimer)
+                              : 0,
                         ),
-                        borderRadius: BorderRadius.circular(4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF00E5FF).withValues(alpha: 0.08),
-                            blurRadius: 30,
-                            spreadRadius: 5,
+                        child: Container(
+                          width: canvasW,
+                          height: canvasH,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: const Color(0xFF1A2332),
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF00E5FF,
+                                ).withValues(alpha: 0.08),
+                                blurRadius: 30,
+                                spreadRadius: 5,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: CustomPaint(
-                          painter: ClassicPainter(
-                            engine: _engine,
-                            repaint: _frameNotifier,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: CustomPaint(
+                              painter: ClassicPainter(
+                                engine: _engine,
+                                repaint: _frameNotifier,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
+                      const SizedBox(width: 12),
 
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'NEXT',
-                        style: TextStyle(
-                          fontSize: 10,
-                          letterSpacing: 3,
-                          color: const Color(0xFF00E5FF).withValues(alpha: 0.7),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'NEXT',
+                              style: TextStyle(
+                                fontSize: 10,
+                                letterSpacing: 3,
+                                color: const Color(
+                                  0xFF00E5FF,
+                                ).withValues(alpha: 0.7),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            NextPiecePreview(piece: _engine.nextPiece),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      NextPiecePreview(piece: _engine.nextPiece),
                     ],
                   ),
-                  ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 8),
+              ],
             ),
-
-
-            const SizedBox(height: 8),
+            if (_engine.state.status == GameStatus.gameOver ||
+                _engine.state.status == GameStatus.paused)
+              OverlayMenu(
+                title: _engine.state.status == GameStatus.gameOver
+                    ? 'GAME OVER'
+                    : 'PAUSED',
+                score: _engine.state.score,
+                bestScore: _engine.highScore,
+                onResume: _engine.state.status == GameStatus.paused
+                    ? _engine.togglePause
+                    : null,
+                onRestart: () {
+                  _engine.reset();
+                },
+                onHome: () {
+                  Navigator.of(context).pop();
+                },
+              ),
           ],
-        ),
-        if (_engine.state.status == GameStatus.gameOver || _engine.state.status == GameStatus.paused)
-          OverlayMenu(
-            title: _engine.state.status == GameStatus.gameOver ? 'GAME OVER' : 'PAUSED',
-            score: _engine.state.score,
-            bestScore: _engine.highScore,
-            onResume: _engine.state.status == GameStatus.paused ? _engine.togglePause : null,
-            onRestart: () {
-              _engine.reset();
-            },
-            onHome: () {
-              Navigator.of(context).pop();
-            },
-          ),
-      ],
+        );
+      },
     );
-  },
-);
   }
 }

@@ -17,16 +17,16 @@ class SandGrain {
 /// Double-buffered sand particle grid.
 class SandGrid {
   SandGrid({int? cols, int? rows})
-      : cols = cols ?? sandColumns,
-        rows = rows ?? sandRows,
-        _current = List<SandGrain?>.filled(
-          (cols ?? sandColumns) * (rows ?? sandRows),
-          null,
-        ),
-        _next = List<SandGrain?>.filled(
-          (cols ?? sandColumns) * (rows ?? sandRows),
-          null,
-        );
+    : cols = cols ?? sandColumns,
+      rows = rows ?? sandRows,
+      _current = List<SandGrain?>.filled(
+        (cols ?? sandColumns) * (rows ?? sandRows),
+        null,
+      ),
+      _next = List<SandGrain?>.filled(
+        (cols ?? sandColumns) * (rows ?? sandRows),
+        null,
+      );
 
   final int cols;
   final int rows;

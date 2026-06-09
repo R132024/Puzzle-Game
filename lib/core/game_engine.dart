@@ -29,14 +29,13 @@ class GameState {
     int? level,
     int? linesCleared,
     double? elapsedSeconds,
-  }) =>
-      GameState(
-        status: status ?? this.status,
-        score: score ?? this.score,
-        level: level ?? this.level,
-        linesCleared: linesCleared ?? this.linesCleared,
-        elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
-      );
+  }) => GameState(
+    status: status ?? this.status,
+    score: score ?? this.score,
+    level: level ?? this.level,
+    linesCleared: linesCleared ?? this.linesCleared,
+    elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+  );
 }
 
 /// The contract that both ClassicEngine and ArenaEngine implement.
@@ -51,7 +50,13 @@ class FloatingText {
 }
 
 class HardDropTrail {
-  HardDropTrail(this.col, this.startRow, this.endRow, this.colorIndex, this.timer);
+  HardDropTrail(
+    this.col,
+    this.startRow,
+    this.endRow,
+    this.colorIndex,
+    this.timer,
+  );
   final int col;
   final int startRow;
   final int endRow;
@@ -71,19 +76,19 @@ abstract class GameEngine {
 
   /// The piece currently held in reserve.
   CubixPiece? get heldPiece;
-  
+
   /// True if the player is allowed to hold a piece this turn.
   bool get canHold;
 
   /// Screen shake timer (for hard drops).
   double get shakeTimer;
-  
+
   /// List of hard drop trails.
   List<HardDropTrail> get hardDropTrails;
-  
+
   /// List of floating text popups (combos, lines cleared).
   List<FloatingText> get floatingTexts;
-  
+
   /// High score for the current mode.
   int get highScore;
 

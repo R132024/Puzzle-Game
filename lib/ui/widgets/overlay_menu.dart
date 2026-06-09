@@ -56,9 +56,7 @@ class OverlayMenu extends StatelessWidget {
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      shadows: [
-                        Shadow(color: AppTheme.uiGlow, blurRadius: 15),
-                      ],
+                      shadows: [Shadow(color: AppTheme.uiGlow, blurRadius: 15)],
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -84,7 +82,8 @@ class OverlayMenu extends StatelessWidget {
                       label: 'SHARE SCORE',
                       icon: Icons.share,
                       onTap: () {
-                        final text = '🧊💥 He logrado $score pts en Cubix Blast! ¿Puedes vencerme? 🟦🟩🟪';
+                        final text =
+                            '🧊💥 He logrado $score pts en Cubix Blast! ¿Puedes vencerme? 🟦🟩🟪';
                         // ignore: deprecated_member_use
                         Share.share(text);
                       },

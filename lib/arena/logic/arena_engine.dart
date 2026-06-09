@@ -28,10 +28,13 @@ class ClearedBridgeAnimation {
 
 class ArenaEngine implements GameEngine {
   ArenaEngine({int? seed})
-      : _factory = PieceFactory(seed: seed, maxColors: 3), // Limit to 3 colors for easier bridge making
-        _sandSim = SandSimulator(seed: seed),
-        _pieceGrid = Grid(gridRows, gridColumns),
-        sandGrid = SandGrid();
+    : _factory = PieceFactory(
+        seed: seed,
+        maxColors: 3,
+      ), // Limit to 3 colors for easier bridge making
+      _sandSim = SandSimulator(seed: seed),
+      _pieceGrid = Grid(gridRows, gridColumns),
+      sandGrid = SandGrid();
 
   final PieceFactory _factory;
   final SandSimulator _sandSim;
@@ -56,22 +59,22 @@ class ArenaEngine implements GameEngine {
 
   @override
   CubixPiece? heldPiece;
-  
+
   @override
   bool canHold = true;
 
   @override
   double shakeTimer = 0.0;
-  
+
   @override
   List<FloatingText> floatingTexts = [];
-  
+
   @override
   List<HardDropTrail> hardDropTrails = [];
-  
+
   @override
   int get highScore => ScoreManager.arenaHighScore;
-  
+
   int currentCombo = 0;
 
   /// Active bridge animations.
@@ -128,7 +131,7 @@ class ArenaEngine implements GameEngine {
     if (state.status != GameStatus.playing) return;
 
     state = state.copyWith(elapsedSeconds: state.elapsedSeconds + dt);
-    
+
     final toRemove = <ClearedBridgeAnimation>[];
     for (final anim in bridgeAnimations) {
       anim.timer -= dt;
@@ -137,12 +140,12 @@ class ArenaEngine implements GameEngine {
     for (final anim in toRemove) {
       bridgeAnimations.remove(anim);
     }
-    
+
     if (shakeTimer > 0) {
       shakeTimer -= dt;
       if (shakeTimer < 0) shakeTimer = 0;
     }
-    
+
     final textsToRemove = <FloatingText>[];
     for (final t in floatingTexts) {
       t.timer -= dt;
@@ -151,7 +154,7 @@ class ArenaEngine implements GameEngine {
     for (final t in textsToRemove) {
       floatingTexts.remove(t);
     }
-    
+
     final trailsToRemove = <HardDropTrail>[];
     for (final t in hardDropTrails) {
       t.timer -= dt;
@@ -205,8 +208,10 @@ class ArenaEngine implements GameEngine {
   bool _collidesWithAll(CubixPiece piece) {
     for (final cell in piece.absoluteCells) {
       // Out of bounds
-      if (cell.row < 0 || cell.row >= gridRows ||
-          cell.col < 0 || cell.col >= gridColumns) {
+      if (cell.row < 0 ||
+          cell.row >= gridRows ||
+          cell.col < 0 ||
+          cell.col >= gridColumns) {
         return true;
       }
       // Check sand grid for collisions (any grain in the block area)
@@ -258,18 +263,22 @@ class ArenaEngine implements GameEngine {
       final bridge = _bridgeDetector.detect(sandGrid);
       if (bridge.found) {
         _bridgeCheckTimer = 0;
-        bridgeAnimations.add(ClearedBridgeAnimation(
-          List.from(bridge.connectedIndices),
-          bridge.colorIndex,
-          0.5,
-        ));
+        bridgeAnimations.add(
+          ClearedBridgeAnimation(
+            List.from(bridge.connectedIndices),
+            bridge.colorIndex,
+            0.5,
+          ),
+        );
         sandGrid.removeGrains(bridge.connectedIndices);
-        
+
         currentCombo++;
         if (currentCombo > 1) {
-          floatingTexts.add(FloatingText('COMBO x$currentCombo', 1.5, 0xFFFFD600));
+          floatingTexts.add(
+            FloatingText('COMBO x$currentCombo', 1.5, 0xFFFFD600),
+          );
         }
-        
+
         // Count size of bridge to determine popup
         int count = bridge.connectedIndices.length;
         if (count > 20) {
@@ -285,14 +294,14 @@ class ArenaEngine implements GameEngine {
 
         final newLines = state.linesCleared + 1;
         final newLevel = (newLines ~/ linesPerLevel) + 1;
-        
+
         final newScore = state.score + 100 * state.level;
         if (newScore > ScoreManager.arenaHighScore) {
           ScoreManager.saveArenaScore(newScore);
         }
-        
+
         ScoreManager.addCoins(10);
-        
+
         if (newLevel > state.level) {
           floatingTexts.add(FloatingText('LEVEL UP!', 3.0, 0xFFFF1744));
         }
@@ -388,41 +397,65 @@ class ArenaEngine implements GameEngine {
       piece = piece.moved(1, 0);
     }
     activePiece = piece;
-    
+
     // Add trail
     for (final cell in piece.absoluteCells) {
-      hardDropTrails.add(HardDropTrail(cell.col, startRow + (cell.row - piece.row), cell.row, piece.colorIndex, 0.3));
+      hardDropTrails.add(
+        HardDropTrail(
+          cell.col,
+          startRow + (cell.row - piece.row),
+          cell.row,
+          piece.colorIndex,
+          0.3,
+        ),
+      );
     }
-    
+
     final newScore = state.score + 2;
     if (newScore > ScoreManager.arenaHighScore) {
       ScoreManager.saveArenaScore(newScore);
     }
-    
+
     state = state.copyWith(score: newScore);
     shakeTimer = 0.2;
     HapticFeedback.heavyImpact();
     _lockAndDisintegrate();
   }
-  
+
   @override
   void holdPiece() {
-    if (state.status != GameStatus.playing || activePiece == null || !canHold) return;
-    
+    if (state.status != GameStatus.playing || activePiece == null || !canHold)
+      return;
+
     final currentShape = activePiece!.shape;
     final currentColor = activePiece!.colorIndex;
-    
+
     if (heldPiece == null) {
-      heldPiece = CubixPiece(shape: currentShape, colorIndex: currentColor, row: 0, col: 3);
+      heldPiece = CubixPiece(
+        shape: currentShape,
+        colorIndex: currentColor,
+        row: 0,
+        col: 3,
+      );
       _spawnPiece();
     } else {
       final tempShape = heldPiece!.shape;
       final tempColor = heldPiece!.colorIndex;
-      heldPiece = CubixPiece(shape: currentShape, colorIndex: currentColor, row: 0, col: 3);
-      activePiece = CubixPiece(shape: tempShape, colorIndex: tempColor, row: 0, col: 3);
+      heldPiece = CubixPiece(
+        shape: currentShape,
+        colorIndex: currentColor,
+        row: 0,
+        col: 3,
+      );
+      activePiece = CubixPiece(
+        shape: tempShape,
+        colorIndex: tempColor,
+        row: 0,
+        col: 3,
+      );
       _dropTimer = 0;
     }
-    
+
     canHold = false;
   }
 

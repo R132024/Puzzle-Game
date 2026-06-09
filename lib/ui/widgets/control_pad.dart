@@ -60,10 +60,7 @@ class ControlPad extends StatelessWidget {
                 onLongPress: onSoftDrop,
               ),
               const SizedBox(width: 8),
-              _ControlButton(
-                icon: Icons.swap_vert,
-                onTap: onHold,
-              ),
+              _ControlButton(icon: Icons.swap_vert, onTap: onHold),
               const SizedBox(width: 8),
               _ControlButton(
                 icon: Icons.rotate_right,

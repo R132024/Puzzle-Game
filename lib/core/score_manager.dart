@@ -39,6 +39,7 @@ class ScoreManager {
     await _prefs.setInt(_coinsKey, newVal);
     coinsNotifier.value = newVal;
   }
+
   static Future<bool> spendCoins(int amount) async {
     final current = coins;
     if (current >= amount) {
@@ -50,12 +51,14 @@ class ScoreManager {
     return false;
   }
 
-  static String get currentTheme => _prefs.getString(_currentThemeKey) ?? 'classic';
+  static String get currentTheme =>
+      _prefs.getString(_currentThemeKey) ?? 'classic';
   static Future<void> setCurrentTheme(String themeId) async {
     await _prefs.setString(_currentThemeKey, themeId);
   }
 
-  static List<String> get unlockedThemes => _prefs.getStringList(_unlockedThemesKey) ?? ['classic'];
+  static List<String> get unlockedThemes =>
+      _prefs.getStringList(_unlockedThemesKey) ?? ['classic'];
   static Future<void> unlockTheme(String themeId) async {
     final list = unlockedThemes;
     if (!list.contains(themeId)) {

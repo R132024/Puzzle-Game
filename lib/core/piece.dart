@@ -40,32 +40,29 @@ class CubixPiece {
 
   // ─── Immutable transforms ──────────────────────────────────────
 
-  CubixPiece moved(int dRow, int dCol) =>
-      CubixPiece(
-        shape: shape,
-        rotation: rotation,
-        row: row + dRow,
-        col: col + dCol,
-        colorIndex: colorIndex,
-      );
+  CubixPiece moved(int dRow, int dCol) => CubixPiece(
+    shape: shape,
+    rotation: rotation,
+    row: row + dRow,
+    col: col + dCol,
+    colorIndex: colorIndex,
+  );
 
-  CubixPiece rotated(Rotation newRotation) =>
-      CubixPiece(
-        shape: shape,
-        rotation: newRotation,
-        row: row,
-        col: col,
-        colorIndex: colorIndex,
-      );
+  CubixPiece rotated(Rotation newRotation) => CubixPiece(
+    shape: shape,
+    rotation: newRotation,
+    row: row,
+    col: col,
+    colorIndex: colorIndex,
+  );
 
-  CubixPiece withPosition(int newRow, int newCol) =>
-      CubixPiece(
-        shape: shape,
-        rotation: rotation,
-        row: newRow,
-        col: newCol,
-        colorIndex: colorIndex,
-      );
+  CubixPiece withPosition(int newRow, int newCol) => CubixPiece(
+    shape: shape,
+    rotation: rotation,
+    row: newRow,
+    col: newCol,
+    colorIndex: colorIndex,
+  );
 
   Rotation get nextRotation {
     const values = Rotation.values;

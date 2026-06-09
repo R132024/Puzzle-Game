@@ -56,7 +56,7 @@ class _ShopScreenState extends State<ShopScreen> {
           final theme = themes[index];
           final isUnlocked = ScoreManager.unlockedThemes.contains(theme.id);
           final isSelected = ScoreManager.currentTheme == theme.id;
-          
+
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(16),
@@ -64,7 +64,9 @@ class _ShopScreenState extends State<ShopScreen> {
               color: const Color(0xFF0F172A),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? const Color(0xFF00E5FF) : const Color(0xFF1E293B),
+                color: isSelected
+                    ? const Color(0xFF00E5FF)
+                    : const Color(0xFF1E293B),
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -86,11 +88,29 @@ class _ShopScreenState extends State<ShopScreen> {
                       ),
                       const SizedBox(height: 8),
                       if (isSelected)
-                        const Text('SELECTED', style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold))
+                        const Text(
+                          'SELECTED',
+                          style: TextStyle(
+                            color: Color(0xFF00E5FF),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
                       else if (isUnlocked)
-                        const Text('UNLOCKED', style: TextStyle(color: Color(0xFF00E676), fontWeight: FontWeight.bold))
+                        const Text(
+                          'UNLOCKED',
+                          style: TextStyle(
+                            color: Color(0xFF00E676),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
                       else
-                        Text('🪙 ${theme.price}', style: const TextStyle(color: Color(0xFFFFD600), fontWeight: FontWeight.bold)),
+                        Text(
+                          '🪙 ${theme.price}',
+                          style: const TextStyle(
+                            color: Color(0xFFFFD600),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -101,7 +121,9 @@ class _ShopScreenState extends State<ShopScreen> {
                         await ScoreManager.setCurrentTheme(theme.id);
                         _update();
                       } else if (coins >= theme.price) {
-                        final success = await ScoreManager.spendCoins(theme.price);
+                        final success = await ScoreManager.spendCoins(
+                          theme.price,
+                        );
                         if (success) {
                           await ScoreManager.unlockTheme(theme.id);
                           await ScoreManager.setCurrentTheme(theme.id);
@@ -110,7 +132,11 @@ class _ShopScreenState extends State<ShopScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isUnlocked ? const Color(0xFF2979FF) : (coins >= theme.price ? const Color(0xFFFFD600) : Colors.grey),
+                      backgroundColor: isUnlocked
+                          ? const Color(0xFF2979FF)
+                          : (coins >= theme.price
+                                ? const Color(0xFFFFD600)
+                                : Colors.grey),
                       foregroundColor: isUnlocked ? Colors.white : Colors.black,
                     ),
                     child: Text(isUnlocked ? 'SELECT' : 'BUY'),

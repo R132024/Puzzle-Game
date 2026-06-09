@@ -11,13 +11,13 @@ class MusicService {
 
   Future<void> init() async {
     if (kIsWeb || !Platform.isAndroid) return;
-    
+
     try {
       final isEnabled = await NowPlaying.instance.isEnabled();
       if (!isEnabled) {
         await NowPlaying.instance.requestPermissions(force: true);
       }
-      
+
       await NowPlaying.instance.start(resolveImages: true);
       NowPlaying.instance.stream.listen((track) {
         currentTrack.value = track;

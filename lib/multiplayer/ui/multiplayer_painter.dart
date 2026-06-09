@@ -7,10 +7,8 @@ import 'package:cubix_blast/core/score_manager.dart';
 
 /// Renders the Classic mode grid using CustomPainter.
 class MultiplayerPainter extends CustomPainter {
-  MultiplayerPainter({
-    required this.engine,
-    required this.repaint,
-  }) : super(repaint: repaint);
+  MultiplayerPainter({required this.engine, required this.repaint})
+    : super(repaint: repaint);
 
   final MultiplayerEngine engine;
   final ValueNotifier<int> repaint;
@@ -61,8 +59,17 @@ class MultiplayerPainter extends CustomPainter {
       for (int c = 0; c < gridColumns; c++) {
         final colorIndex = grid.getCell(r, c);
         if (colorIndex != null) {
-          final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
-          _drawBlock(canvas, r, c, cellW, cellH, colorList[colorIndex % colorList.length]);
+          final colorList = GameThemes.getTheme(
+            ScoreManager.currentTheme,
+          ).pieceColors;
+          _drawBlock(
+            canvas,
+            r,
+            c,
+            cellW,
+            cellH,
+            colorList[colorIndex % colorList.length],
+          );
         }
       }
     }
@@ -72,8 +79,15 @@ class MultiplayerPainter extends CustomPainter {
     final ghost = engine.ghostPiece;
     if (ghost == null) return;
     for (final cell in ghost.absoluteCells) {
-      _drawBlock(canvas, cell.row, cell.col, cellW, cellH,
-          AppTheme.ghostColor, isGhost: true);
+      _drawBlock(
+        canvas,
+        cell.row,
+        cell.col,
+        cellW,
+        cellH,
+        AppTheme.ghostColor,
+        isGhost: true,
+      );
     }
   }
 
@@ -81,22 +95,35 @@ class MultiplayerPainter extends CustomPainter {
     final piece = engine.activePiece;
     if (piece == null) return;
     for (final cell in piece.absoluteCells) {
-      final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
-      _drawBlock(canvas, cell.row, cell.col, cellW, cellH,
-          colorList[piece.colorIndex % colorList.length]);
+      final colorList = GameThemes.getTheme(
+        ScoreManager.currentTheme,
+      ).pieceColors;
+      _drawBlock(
+        canvas,
+        cell.row,
+        cell.col,
+        cellW,
+        cellH,
+        colorList[piece.colorIndex % colorList.length],
+      );
     }
   }
 
   void _drawClearedRowFlash(
-      Canvas canvas, Size size, double cellW, double cellH) {
+    Canvas canvas,
+    Size size,
+    double cellW,
+    double cellH,
+  ) {
     if (engine.clearedRowTimers.isEmpty) return;
-    
+
     for (final entry in engine.clearedRowTimers.entries) {
       final row = entry.key;
       final progress = (entry.value / 0.4).clamp(0.0, 1.0);
-      
+
       // Flash rectangle fading out
-      final flashPaint = Paint()..color = Colors.white.withValues(alpha: 0.8 * progress);
+      final flashPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.8 * progress);
       canvas.drawRect(
         Rect.fromLTWH(0, row * cellH, size.width, cellH),
         flashPaint,
@@ -107,7 +134,7 @@ class MultiplayerPainter extends CustomPainter {
         ..color = const Color(0xFF00E5FF).withValues(alpha: progress)
         ..strokeWidth = 4.0 * progress
         ..strokeCap = StrokeCap.round;
-        
+
       final cy = row * cellH + cellH / 2;
       canvas.drawLine(
         Offset(size.width / 2 * (1.0 - progress), cy),
@@ -117,8 +144,15 @@ class MultiplayerPainter extends CustomPainter {
     }
   }
 
-  void _drawBlock(Canvas canvas, int row, int col, double cellW, double cellH,
-      Color color, {bool isGhost = false}) {
+  void _drawBlock(
+    Canvas canvas,
+    int row,
+    int col,
+    double cellW,
+    double cellH,
+    Color color, {
+    bool isGhost = false,
+  }) {
     final rect = Rect.fromLTWH(
       col * cellW + 1,
       row * cellH + 1,
@@ -163,19 +197,23 @@ class MultiplayerPainter extends CustomPainter {
     for (final trail in engine.hardDropTrails) {
       final progress = (trail.timer / 0.3).clamp(0.0, 1.0);
       if (progress <= 0) continue;
-      
-      final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
+
+      final colorList = GameThemes.getTheme(
+        ScoreManager.currentTheme,
+      ).pieceColors;
       final paint = Paint()
-        ..color = colorList[trail.colorIndex % colorList.length].withValues(alpha: progress * 0.4)
+        ..color = colorList[trail.colorIndex % colorList.length].withValues(
+          alpha: progress * 0.4,
+        )
         ..style = PaintingStyle.fill;
-        
+
       final rect = Rect.fromLTRB(
         trail.col * cellW,
         trail.startRow * cellH,
         (trail.col + 1) * cellW,
         (trail.endRow + 1) * cellH,
       );
-      
+
       canvas.drawRect(rect, paint);
     }
   }
@@ -186,22 +224,35 @@ class MultiplayerPainter extends CustomPainter {
       final progress = text.timer / 2.0; // Assume max 2.0s
       final alpha = (progress * 2).clamp(0.0, 1.0);
       final dy = size.height * 0.4 - (1.0 - progress) * 80;
-      
+
       final textStyle = TextStyle(
         color: Color(text.colorArgb).withValues(alpha: alpha),
         fontSize: 24,
         fontWeight: FontWeight.bold,
         fontStyle: FontStyle.italic,
         shadows: [
-          Shadow(color: Colors.black.withValues(alpha: alpha), blurRadius: 4, offset: const Offset(2, 2)),
-          Shadow(color: Color(text.colorArgb).withValues(alpha: alpha * 0.5), blurRadius: 10),
+          Shadow(
+            color: Colors.black.withValues(alpha: alpha),
+            blurRadius: 4,
+            offset: const Offset(2, 2),
+          ),
+          Shadow(
+            color: Color(text.colorArgb).withValues(alpha: alpha * 0.5),
+            blurRadius: 10,
+          ),
         ],
       );
-      
+
       final textSpan = TextSpan(text: text.text, style: textStyle);
-      final textPainter = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
       textPainter.layout();
-      textPainter.paint(canvas, Offset((size.width - textPainter.width) / 2, dy));
+      textPainter.paint(
+        canvas,
+        Offset((size.width - textPainter.width) / 2, dy),
+      );
     }
   }
 

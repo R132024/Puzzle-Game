@@ -23,9 +23,7 @@ class NextPiecePreview extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: CustomPaint(
-        painter: _NextPiecePainter(piece),
-      ),
+      child: CustomPaint(painter: _NextPiecePainter(piece)),
     );
   }
 }
@@ -57,7 +55,9 @@ class _NextPiecePainter extends CustomPainter {
     final offsetX = (size.width - pieceW * cellSize) / 2;
     final offsetY = (size.height - pieceH * cellSize) / 2;
 
-    final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
+    final colorList = GameThemes.getTheme(
+      ScoreManager.currentTheme,
+    ).pieceColors;
     final color = colorList[piece!.colorIndex % colorList.length];
     final paint = Paint()..color = color;
 

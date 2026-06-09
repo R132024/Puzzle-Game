@@ -61,7 +61,12 @@ class _GameOverModalState extends State<GameOverModal> {
   Future<void> _saveScore() async {
     final name = _nameController.text.trim().toUpperCase();
     if (name.length == 4) {
-      await HighScoreStore.saveHighScore(widget.mode, widget.state.score, widget.state.level, name);
+      await HighScoreStore.saveHighScore(
+        widget.mode,
+        widget.state.score,
+        widget.state.level,
+        name,
+      );
       if (mounted) {
         setState(() {
           _saved = true;
@@ -134,7 +139,8 @@ class _GameOverModalState extends State<GameOverModal> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        if (_previousRecord != null && widget.state.score > _previousRecord!.score)
+                        if (_previousRecord != null &&
+                            widget.state.score > _previousRecord!.score)
                           const Padding(
                             padding: EdgeInsets.only(bottom: 16),
                             child: Text(
@@ -146,7 +152,10 @@ class _GameOverModalState extends State<GameOverModal> {
                               ),
                             ),
                           ),
-                        if (!_saved && (_previousRecord == null || widget.state.score > _previousRecord!.score)) ...[
+                        if (!_saved &&
+                            (_previousRecord == null ||
+                                widget.state.score >
+                                    _previousRecord!.score)) ...[
                           TextField(
                             controller: _nameController,
                             maxLength: 4,
@@ -167,28 +176,46 @@ class _GameOverModalState extends State<GameOverModal> {
                             ),
                             onChanged: (val) {
                               // Force uppercase and A-Z only
-                              final filtered = val.toUpperCase().replaceAll(RegExp(r'[^A-Z]'), '');
+                              final filtered = val.toUpperCase().replaceAll(
+                                RegExp(r'[^A-Z]'),
+                                '',
+                              );
                               if (filtered != val) {
                                 _nameController.text = filtered;
-                                _nameController.selection = TextSelection.fromPosition(
-                                  TextPosition(offset: filtered.length),
-                                );
+                                _nameController.selection =
+                                    TextSelection.fromPosition(
+                                      TextPosition(offset: filtered.length),
+                                    );
                               }
                               setState(() {});
                             },
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
-                            onPressed: _nameController.text.length == 4 ? _saveScore : null,
+                            onPressed: _nameController.text.length == 4
+                                ? _saveScore
+                                : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF00E5FF),
                               foregroundColor: Colors.black,
                               minimumSize: const Size(double.infinity, 48),
                             ),
-                            child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            child: const Text(
+                              'Guardar',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                           ),
                         ] else if (_saved) ...[
-                          const Text('¡Guardado!', style: TextStyle(color: Color(0xFF00E676), fontSize: 18)),
+                          const Text(
+                            '¡Guardado!',
+                            style: TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 18,
+                            ),
+                          ),
                         ],
                         const SizedBox(height: 24),
                       ],

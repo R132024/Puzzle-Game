@@ -6,7 +6,11 @@ import '../theme/app_theme.dart';
 
 /// Shows a mini preview of the held piece.
 class HoldPiecePreview extends StatelessWidget {
-  const HoldPiecePreview({super.key, required this.piece, required this.canHold});
+  const HoldPiecePreview({
+    super.key,
+    required this.piece,
+    required this.canHold,
+  });
 
   final CubixPiece? piece;
   final bool canHold;
@@ -20,13 +24,13 @@ class HoldPiecePreview extends StatelessWidget {
         color: const Color(0xFF0D1420),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: canHold ? AppTheme.uiGlow.withValues(alpha: 0.3) : Colors.white24,
+          color: canHold
+              ? AppTheme.uiGlow.withValues(alpha: 0.3)
+              : Colors.white24,
           width: 1,
         ),
       ),
-      child: CustomPaint(
-        painter: _HoldPiecePainter(piece, canHold),
-      ),
+      child: CustomPaint(painter: _HoldPiecePainter(piece, canHold)),
     );
   }
 }
@@ -59,7 +63,9 @@ class _HoldPiecePainter extends CustomPainter {
     final offsetX = (size.width - pieceW * cellSize) / 2;
     final offsetY = (size.height - pieceH * cellSize) / 2;
 
-    final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
+    final colorList = GameThemes.getTheme(
+      ScoreManager.currentTheme,
+    ).pieceColors;
     Color color = colorList[piece!.colorIndex % colorList.length];
     if (!canHold) {
       // Gray out the piece if it cannot be held
@@ -82,6 +88,6 @@ class _HoldPiecePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _HoldPiecePainter old) => 
-    old.piece != piece || old.canHold != canHold;
+  bool shouldRepaint(covariant _HoldPiecePainter old) =>
+      old.piece != piece || old.canHold != canHold;
 }

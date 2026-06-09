@@ -7,10 +7,8 @@ import 'package:cubix_blast/core/score_manager.dart';
 
 /// Renders the Arena mode sand grid using CustomPainter.
 class ArenaPainter extends CustomPainter {
-  ArenaPainter({
-    required this.engine,
-    required this.repaint,
-  }) : super(repaint: repaint);
+  ArenaPainter({required this.engine, required this.repaint})
+    : super(repaint: repaint);
 
   final ArenaEngine engine;
   final ValueNotifier<int> repaint;
@@ -73,7 +71,9 @@ class ArenaPainter extends CustomPainter {
         grainH + 0.5,
       );
 
-      final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
+      final colorList = GameThemes.getTheme(
+        ScoreManager.currentTheme,
+      ).pieceColors;
       final color = colorList[grain.colorIndex % colorList.length];
       canvas.drawRect(rect, Paint()..color = color);
     }
@@ -83,7 +83,9 @@ class ArenaPainter extends CustomPainter {
     final piece = engine.activePiece;
     if (piece == null) return;
 
-    final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
+    final colorList = GameThemes.getTheme(
+      ScoreManager.currentTheme,
+    ).pieceColors;
     final color = colorList[piece.colorIndex % colorList.length];
     final paint = Paint()..color = color;
     final highlight = Paint()
@@ -116,22 +118,27 @@ class ArenaPainter extends CustomPainter {
 
     for (final anim in engine.bridgeAnimations) {
       final progress = (anim.timer / 0.5).clamp(0.0, 1.0);
-      final flashPaint = Paint()..color = Colors.white.withValues(alpha: progress);
-      final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
+      final flashPaint = Paint()
+        ..color = Colors.white.withValues(alpha: progress);
+      final colorList = GameThemes.getTheme(
+        ScoreManager.currentTheme,
+      ).pieceColors;
       final paint = Paint()
-        ..color = colorList[anim.colorIndex % colorList.length].withValues(alpha: progress * 0.8)
+        ..color = colorList[anim.colorIndex % colorList.length].withValues(
+          alpha: progress * 0.8,
+        )
         ..style = PaintingStyle.fill;
-        
+
       for (final idx in anim.indices) {
         final r = idx ~/ cols;
         final c = idx % cols;
-        
+
         final cx = c * grainW + grainW / 2;
         final cy = r * grainH + grainH / 2;
         final radius = grainW * (1.5 - progress);
-        
+
         canvas.drawCircle(Offset(cx, cy), radius, paint);
-        
+
         canvas.drawRect(
           Rect.fromLTWH(c * grainW, r * grainH, grainW + 0.5, grainH + 0.5),
           flashPaint,
@@ -144,19 +151,23 @@ class ArenaPainter extends CustomPainter {
     for (final trail in engine.hardDropTrails) {
       final progress = (trail.timer / 0.3).clamp(0.0, 1.0);
       if (progress <= 0) continue;
-      
-      final colorList = GameThemes.getTheme(ScoreManager.currentTheme).pieceColors;
+
+      final colorList = GameThemes.getTheme(
+        ScoreManager.currentTheme,
+      ).pieceColors;
       final paint = Paint()
-        ..color = colorList[trail.colorIndex % colorList.length].withValues(alpha: progress * 0.4)
+        ..color = colorList[trail.colorIndex % colorList.length].withValues(
+          alpha: progress * 0.4,
+        )
         ..style = PaintingStyle.fill;
-        
+
       final rect = Rect.fromLTRB(
         trail.col * cellW,
         trail.startRow * cellH,
         (trail.col + 1) * cellW,
         (trail.endRow + 1) * cellH,
       );
-      
+
       canvas.drawRect(rect, paint);
     }
   }
@@ -167,22 +178,35 @@ class ArenaPainter extends CustomPainter {
       final progress = text.timer / 2.0; // Assume max 2.0s
       final alpha = (progress * 2).clamp(0.0, 1.0);
       final dy = size.height * 0.4 - (1.0 - progress) * 80;
-      
+
       final textStyle = TextStyle(
         color: Color(text.colorArgb).withValues(alpha: alpha),
         fontSize: 24,
         fontWeight: FontWeight.bold,
         fontStyle: FontStyle.italic,
         shadows: [
-          Shadow(color: Colors.black.withValues(alpha: alpha), blurRadius: 4, offset: const Offset(2, 2)),
-          Shadow(color: Color(text.colorArgb).withValues(alpha: alpha * 0.5), blurRadius: 10),
+          Shadow(
+            color: Colors.black.withValues(alpha: alpha),
+            blurRadius: 4,
+            offset: const Offset(2, 2),
+          ),
+          Shadow(
+            color: Color(text.colorArgb).withValues(alpha: alpha * 0.5),
+            blurRadius: 10,
+          ),
         ],
       );
-      
+
       final textSpan = TextSpan(text: text.text, style: textStyle);
-      final textPainter = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
       textPainter.layout();
-      textPainter.paint(canvas, Offset((size.width - textPainter.width) / 2, dy));
+      textPainter.paint(
+        canvas,
+        Offset((size.width - textPainter.width) / 2, dy),
+      );
     }
   }
 

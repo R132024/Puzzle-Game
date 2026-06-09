@@ -48,7 +48,10 @@ class _AudioVisualizerBgState extends State<AudioVisualizerBg>
           valueListenable: MusicService.instance.currentTrack,
           builder: (context, track, _) {
             // Ask package to resolve the image if it's missing (usually happens async)
-            if (track != null && !track.hasImage && track.imageNeedsResolving && !track.isResolvingImage) {
+            if (track != null &&
+                !track.hasImage &&
+                track.imageNeedsResolving &&
+                !track.isResolvingImage) {
               track.resolveImage().then((_) {
                 if (mounted) setState(() {});
               });
@@ -72,7 +75,12 @@ class _AudioVisualizerBgState extends State<AudioVisualizerBg>
                 ),
                 CustomPaint(
                   painter: _VisualizerPainter(
-                    time: _controller.value * 2 * pi * 10 * widget.tempoMultiplier,
+                    time:
+                        _controller.value *
+                        2 *
+                        pi *
+                        10 *
+                        widget.tempoMultiplier,
                     baseColor: widget.color,
                   ),
                 ),
@@ -86,10 +94,7 @@ class _AudioVisualizerBgState extends State<AudioVisualizerBg>
 }
 
 class _VisualizerPainter extends CustomPainter {
-  _VisualizerPainter({
-    required this.time,
-    required this.baseColor,
-  });
+  _VisualizerPainter({required this.time, required this.baseColor});
 
   final double time;
   final Color baseColor;
@@ -99,8 +104,9 @@ class _VisualizerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final barWidth = size.width / barCount;
-    final maxBarHeight = size.height * 0.4; // Max height is 40% of screen height
-    
+    final maxBarHeight =
+        size.height * 0.4; // Max height is 40% of screen height
+
     final paint = Paint()
       ..color = baseColor.withValues(alpha: 0.15)
       ..style = PaintingStyle.fill;
@@ -111,7 +117,7 @@ class _VisualizerPainter extends CustomPainter {
       final wave1 = sin(time * 0.5 + i * 0.2);
       final wave2 = sin(time * 0.8 - i * 0.5);
       final wave3 = cos(time * 1.2 + i * 0.1);
-      
+
       // Combine waves and map to [0, 1] range roughly
       double heightFactor = (wave1 + wave2 + wave3) / 3.0;
       heightFactor = (heightFactor.abs() * 1.2).clamp(0.05, 1.0);
@@ -121,7 +127,7 @@ class _VisualizerPainter extends CustomPainter {
       heightFactor = (heightFactor + jitter).clamp(0.05, 1.0);
 
       final currentHeight = maxBarHeight * heightFactor;
-      
+
       // Draw bars emerging from the bottom
       final rect = Rect.fromLTWH(
         i * barWidth,
@@ -129,7 +135,7 @@ class _VisualizerPainter extends CustomPainter {
         barWidth - 2, // 2px gap between bars
         currentHeight,
       );
-      
+
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(4)),
         paint,

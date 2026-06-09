@@ -12,9 +12,9 @@ class Grid {
   Grid(this.rows, this.cols) : _cells = List.filled(rows * cols, null);
 
   Grid.from(Grid other)
-      : rows = other.rows,
-        cols = other.cols,
-        _cells = List<int?>.from(other._cells);
+    : rows = other.rows,
+      cols = other.cols,
+      _cells = List<int?>.from(other._cells);
 
   final int rows;
   final int cols;
@@ -38,7 +38,8 @@ class Grid {
       row >= 0 && row < rows && col >= 0 && col < cols;
 
   /// Whether the cell is empty (null) **and** in bounds.
-  bool isEmpty(int row, int col) => inBounds(row, col) && getCell(row, col) == null;
+  bool isEmpty(int row, int col) =>
+      inBounds(row, col) && getCell(row, col) == null;
 
   // ─── Piece interaction ────────────────────────────────────────
 
@@ -46,7 +47,8 @@ class Grid {
   /// collide with existing blocks or go out of bounds.
   bool collides(CubixPiece piece) {
     for (final cell in piece.absoluteCells) {
-      if (!inBounds(cell.row, cell.col) || getCell(cell.row, cell.col) != null) {
+      if (!inBounds(cell.row, cell.col) ||
+          getCell(cell.row, cell.col) != null) {
         return true;
       }
     }

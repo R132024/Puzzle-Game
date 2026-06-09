@@ -30,7 +30,7 @@ class PieceFactory {
     if (maxColors != null) {
       colorIndex = colorIndex % maxColors!;
     }
-    
+
     return CubixPiece(
       shape: shape,
       colorIndex: colorIndex,
@@ -50,7 +50,7 @@ class PieceFactory {
     if (maxColors != null) {
       colorIndex = colorIndex % maxColors!;
     }
-    
+
     return CubixPiece(
       shape: shape,
       colorIndex: colorIndex,

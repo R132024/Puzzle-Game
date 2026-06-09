@@ -2,15 +2,22 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:nearby_connections/nearby_connections.dart';
 
-enum MultiplayerStatus { disconnected, advertising, discovering, connected, playing }
+enum MultiplayerStatus {
+  disconnected,
+  advertising,
+  discovering,
+  connected,
+  playing,
+}
 
 class MultiplayerConnection extends ChangeNotifier {
   static final MultiplayerConnection instance = MultiplayerConnection._();
   MultiplayerConnection._();
 
   final Strategy strategy = Strategy.P2P_STAR;
-  final String userName = "Player_${DateTime.now().millisecondsSinceEpoch % 1000}";
-  
+  final String userName =
+      "Player_${DateTime.now().millisecondsSinceEpoch % 1000}";
+
   MultiplayerStatus status = MultiplayerStatus.disconnected;
   String? connectedEndpointId;
   String? connectedEndpointName;

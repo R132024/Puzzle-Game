@@ -69,15 +69,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             builder: (context, coins, child) {
               return Container(
                 margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
+                    const Icon(
+                      Icons.monetization_on,
+                      color: Colors.amber,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       '$coins',
@@ -102,7 +111,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 500),
-                child: _showModes ? _buildModeSelection() : _buildInitialBanner(),
+                child: _showModes
+                    ? _buildModeSelection()
+                    : _buildInitialBanner(),
               ),
             ),
           ),
@@ -139,7 +150,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             backgroundColor: const Color(0xFF00E5FF),
             foregroundColor: Colors.black,
             padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
             elevation: 8,
             shadowColor: const Color(0xFF00E5FF).withValues(alpha: 0.5),
           ),
@@ -188,11 +201,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   String _translateMode(String mode) {
     switch (mode) {
-      case 'classic': return 'Clásico';
-      case 'arena': return 'Arena';
-      case 'power': return 'Poderes';
-      case 'multiplayer': return 'Multijugador';
-      default: return mode;
+      case 'classic':
+        return 'Clásico';
+      case 'arena':
+        return 'Arena';
+      case 'power':
+        return 'Poderes';
+      case 'multiplayer':
+        return 'Multijugador';
+      default:
+        return mode;
     }
   }
 
@@ -235,7 +253,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Expanded(flex: 2, child: _buildTableHeader('Nombre')),
                 Expanded(flex: 3, child: _buildTableHeader('Tipo de juego')),
                 Expanded(flex: 2, child: _buildTableHeader('Nivel')),
-                Expanded(flex: 3, child: _buildTableHeader('Puntuación', alignRight: true)),
+                Expanded(
+                  flex: 3,
+                  child: _buildTableHeader('Puntuación', alignRight: true),
+                ),
               ],
             ),
             const Divider(color: Colors.white24, height: 20),
@@ -333,45 +354,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(height: 40),
         _buildModeCard(
           title: 'CLÁSICO',
-          subtitle: 'Bloques que caen en rejilla 10×20.\nCompleta líneas para limpiar.',
+          subtitle:
+              'Bloques que caen en rejilla 10×20.\nCompleta líneas para limpiar.',
           icon: Icons.grid_on,
-          gradientColors: [
-            const Color(0xFF00E5FF),
-            const Color(0xFF2979FF),
-          ],
-          onTap: () => Navigator.pushNamed(context, '/classic').then((_) => _loadRecords()),
+          gradientColors: [const Color(0xFF00E5FF), const Color(0xFF2979FF)],
+          onTap: () => Navigator.pushNamed(
+            context,
+            '/classic',
+          ).then((_) => _loadRecords()),
         ),
         const SizedBox(height: 20),
         _buildModeCard(
           title: 'ARENA',
-          subtitle: 'Los bloques se desintegran en arena.\nConecta colores de pared a pared.',
+          subtitle:
+              'Los bloques se desintegran en arena.\nConecta colores de pared a pared.',
           icon: Icons.grain,
-          gradientColors: [
-            const Color(0xFFAA00FF),
-            const Color(0xFFFF1744),
-          ],
-          onTap: () => Navigator.pushNamed(context, '/arena').then((_) => _loadRecords()),
+          gradientColors: [const Color(0xFFAA00FF), const Color(0xFFFF1744)],
+          onTap: () => Navigator.pushNamed(
+            context,
+            '/arena',
+          ).then((_) => _loadRecords()),
         ),
         const SizedBox(height: 20),
         _buildModeCard(
           title: 'PODERES',
-          subtitle: 'Gasta monedas para usar poderes.\nBomba, cámara lenta y salvavidas.',
+          subtitle:
+              'Gasta monedas para usar poderes.\nBomba, cámara lenta y salvavidas.',
           icon: Icons.bolt,
-          gradientColors: [
-            const Color(0xFF00E676),
-            const Color(0xFFFFD600),
-          ],
-          onTap: () => Navigator.pushNamed(context, '/power').then((_) => _loadRecords()),
+          gradientColors: [const Color(0xFF00E676), const Color(0xFFFFD600)],
+          onTap: () => Navigator.pushNamed(
+            context,
+            '/power',
+          ).then((_) => _loadRecords()),
         ),
         const SizedBox(height: 20),
         _buildModeCard(
           title: 'MULTIJUGADOR',
-          subtitle: 'Conecta por Bluetooth o WiFi local.\n¡Envíale basura a tus amigos!',
+          subtitle:
+              'Conecta por Bluetooth o WiFi local.\n¡Envíale basura a tus amigos!',
           icon: Icons.wifi_tethering,
-          gradientColors: [
-            const Color(0xFF8E24AA),
-            const Color(0xFFE040FB),
-          ],
+          gradientColors: [const Color(0xFF8E24AA), const Color(0xFFE040FB)],
           onTap: () => Navigator.pushNamed(context, '/multiplayer_lobby'),
         ),
         const SizedBox(height: 40),
@@ -381,7 +403,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               _showModes = false;
             });
           },
-          child: const Text('VOLVER AL INICIO', style: TextStyle(color: Colors.white54)),
+          child: const Text(
+            'VOLVER AL INICIO',
+            style: TextStyle(color: Colors.white54),
+          ),
         ),
       ],
     );
@@ -442,7 +467,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: gradientColors.first.withValues(alpha: 0.1 * _pulseAnim.value),
+                    color: gradientColors.first.withValues(
+                      alpha: 0.1 * _pulseAnim.value,
+                    ),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),

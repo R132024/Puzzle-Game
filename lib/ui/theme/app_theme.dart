@@ -21,9 +21,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: const Color(0xFF060A14),
-      textTheme: GoogleFonts.orbitronTextTheme(
-        ThemeData.dark().textTheme,
-      ),
+      textTheme: GoogleFonts.orbitronTextTheme(ThemeData.dark().textTheme),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -51,16 +49,16 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: const Color(0xFF121828),
         elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
   }
 
   // ─── Game-specific colors ───────────────────────────────────
 
-  static const Color gridBackground = Color(0xAA060A14); // Semi-transparent for visualizer
+  static const Color gridBackground = Color(
+    0xAA060A14,
+  ); // Semi-transparent for visualizer
   static const gridLine = Color(0xFF1A2332);
   static const ghostColor = Color(0x40FFFFFF);
   static const uiGlow = Color(0xFF00E5FF);

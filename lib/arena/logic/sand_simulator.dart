@@ -74,8 +74,8 @@ class SandSimulator {
   bool _tryDiagonal(SandGrid grid, int r, int c, int dc, SandGrain grain) {
     final newC = c + dc;
     // Require the cell directly below the diagonal and the cell to the side to be empty
-    if (grid.inBounds(r + 1, newC) && 
-        grid.isNextEmpty(r + 1, newC) && 
+    if (grid.inBounds(r + 1, newC) &&
+        grid.isNextEmpty(r + 1, newC) &&
         grid.isNextEmpty(r, newC)) {
       grid.setNext(r + 1, newC, grain);
       grid.setNext(r, c, null);
