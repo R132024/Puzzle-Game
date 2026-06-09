@@ -15,10 +15,7 @@ class MusicService {
     try {
       final isEnabled = await NowPlaying.instance.isEnabled();
       if (!isEnabled) {
-        final hasPermissions = await NowPlaying.instance.requestPermissions();
-        if (!hasPermissions) {
-          return;
-        }
+        await NowPlaying.instance.requestPermissions(force: true);
       }
       
       await NowPlaying.instance.start(resolveImages: true);

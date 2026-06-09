@@ -12,19 +12,28 @@ class NativeImageResolver implements NowPlayingImageResolver {
   static final RegExp _rationaliseRegExp = RegExp(r' - single|the |and |& |\(.*\)');
 
   Future<ImageProvider?> resolve(NowPlayingTrack track) async {
+    print('iTunes Resolver called for: ${track.title} - ${track.artist}');
     if (track.hasImage) return null;
 
     final String query = Uri.encodeQueryComponent('${track.artist ?? ''} ${track.title ?? ''}'.trim());
-    if (query.isEmpty) return null;
+    if (query.isEmpty) {
+      print('iTunes Resolver: Query is empty');
+      return null;
+    }
 
     final url = 'https://itunes.apple.com/search?term=$query&entity=song&limit=1';
+    print('iTunes URL: $url');
     final json = await _getJson(url);
-    if (json == null || json['results'] == null || (json['results'] as List).isEmpty) return null;
+    if (json == null || json['results'] == null || (json['results'] as List).isEmpty) {
+      print('iTunes Resolver: No results found or error');
+      return null;
+    }
 
     final result = json['results'][0];
     String? artworkUrl = result['artworkUrl100'];
     if (artworkUrl != null) {
       artworkUrl = artworkUrl.replaceAll('100x100bb.jpg', '600x600bb.jpg');
+      print('iTunes Resolver: Found image: $artworkUrl');
       return NetworkImage(artworkUrl);
     }
 
