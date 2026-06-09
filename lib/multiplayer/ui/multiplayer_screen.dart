@@ -148,9 +148,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
         final canvasH = canvasW * 2; // 10:20 ratio
 
         final theme = GameThemes.getTheme(ScoreManager.currentTheme);
-        final currentColor =
-            theme.backgroundColors[(_engine.state.level - 1) %
-                theme.backgroundColors.length];
+        final currentColor = Theme.of(context).colorScheme.primary;
         final tempo = 1.0 + (_engine.state.level * 0.15);
 
         return Stack(

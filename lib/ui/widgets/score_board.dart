@@ -24,12 +24,12 @@ class ScoreBoard extends StatelessWidget {
             color: const Color(0xFF0D1420).withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.uiGlow.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.uiGlow.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 blurRadius: 20,
                 spreadRadius: 2,
               ),
@@ -79,7 +79,7 @@ class _StatItem extends StatelessWidget {
           label,
           style: GoogleFonts.orbitron(
             fontSize: 10,
-            color: AppTheme.uiGlow.withValues(alpha: 0.7),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
             letterSpacing: 3,
           ),
         ),

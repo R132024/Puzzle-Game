@@ -16,6 +16,7 @@ dependencies:
   nearby_connections: ^4.3.0
   nowplaying:
     path: packages/nowplaying
+  palette_generator: ^0.3.3+7
   share_plus: ^13.1.0
   shared_preferences: ^2.5.5
 

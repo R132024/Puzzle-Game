@@ -36,12 +36,12 @@ class OverlayMenu extends StatelessWidget {
                 color: const Color(0xFF0D1420).withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: AppTheme.uiGlow.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.uiGlow.withValues(alpha: 0.2),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),
@@ -56,7 +56,7 @@ class OverlayMenu extends StatelessWidget {
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      shadows: [Shadow(color: AppTheme.uiGlow, blurRadius: 15)],
+                      shadows: [Shadow(color: Theme.of(context).colorScheme.primary, blurRadius: 15)],
                     ),
                   ),
                   const SizedBox(height: 32),

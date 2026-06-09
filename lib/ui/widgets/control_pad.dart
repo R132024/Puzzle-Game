@@ -101,19 +101,19 @@ class _ControlButton extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           color: isPrimary
-              ? AppTheme.uiGlow.withValues(alpha: 0.2)
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
               : const Color(0xFF1A2332),
           borderRadius: BorderRadius.circular(isPrimary ? size / 2 : 12),
           border: Border.all(
             color: isPrimary
-                ? AppTheme.uiGlow.withValues(alpha: 0.6)
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.6)
                 : const Color(0xFF2A3A4A),
             width: isPrimary ? 2 : 1,
           ),
           boxShadow: isPrimary
               ? [
                   BoxShadow(
-                    color: AppTheme.uiGlow.withValues(alpha: 0.2),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                     blurRadius: 12,
                   ),
                 ]
@@ -121,7 +121,7 @@ class _ControlButton extends StatelessWidget {
         ),
         child: Icon(
           icon,
-          color: isPrimary ? AppTheme.uiGlow : Colors.white70,
+          color: isPrimary ? Theme.of(context).colorScheme.primary : Colors.white70,
           size: size * 0.5,
         ),
       ),

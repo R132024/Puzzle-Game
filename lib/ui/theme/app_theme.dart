@@ -7,11 +7,9 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._();
 
-  static const _seedColor = Color(0xFF00E5FF);
-
-  static ThemeData get darkTheme {
+  static ThemeData darkTheme(Color seedColor) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: _seedColor,
+      seedColor: seedColor,
       brightness: Brightness.dark,
       surface: const Color(0xFF0A0E1A),
       onSurface: Colors.white,
@@ -61,5 +59,4 @@ class AppTheme {
   ); // Semi-transparent for visualizer
   static const gridLine = Color(0xFF1A2332);
   static const ghostColor = Color(0x40FFFFFF);
-  static const uiGlow = Color(0xFF00E5FF);
 }

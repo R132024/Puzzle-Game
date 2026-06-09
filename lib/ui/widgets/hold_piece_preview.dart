@@ -31,7 +31,7 @@ class HoldPiecePreview extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: canHold
-                  ? AppTheme.uiGlow.withValues(alpha: 0.3)
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
                   : Colors.white24,
               width: 1,
             ),

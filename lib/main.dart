@@ -26,19 +26,24 @@ class CubixBlastApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'CubixBlast: Puzzle Game',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      initialRoute: '/',
-      routes: {
-        '/': (_) => const HomeScreen(),
-        '/classic': (_) => const ClassicScreen(),
-        '/arena': (_) => const ArenaScreen(),
-        '/power': (_) => const PowerScreen(),
-        '/multiplayer_lobby': (_) => const MultiplayerLobbyScreen(),
-        '/multiplayer_match': (_) => const MultiplayerScreen(),
-        '/shop': (_) => const ShopScreen(),
+    return ValueListenableBuilder<Color>(
+      valueListenable: MusicService.instance.dominantColor,
+      builder: (context, dominantColor, child) {
+        return MaterialApp(
+          title: 'CubixBlast: Puzzle Game',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.darkTheme(dominantColor),
+          initialRoute: '/',
+          routes: {
+            '/': (_) => const HomeScreen(),
+            '/classic': (_) => const ClassicScreen(),
+            '/arena': (_) => const ArenaScreen(),
+            '/power': (_) => const PowerScreen(),
+            '/multiplayer_lobby': (_) => const MultiplayerLobbyScreen(),
+            '/multiplayer_match': (_) => const MultiplayerScreen(),
+            '/shop': (_) => const ShopScreen(),
+          },
+        );
       },
     );
   }

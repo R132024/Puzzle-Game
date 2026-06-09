@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cubix_blast/classic/logic/classic_engine.dart';
 import 'package:cubix_blast/core/high_score_store.dart';
+import 'package:cubix_blast/core/score_manager.dart';
 import 'dart:ui';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/classic/ui/classic_painter.dart';
@@ -129,9 +130,7 @@ class _ClassicScreenState extends State<ClassicScreen>
         final canvasH = canvasW * 2; // 10:20 ratio
 
         final theme = GameThemes.getTheme(ScoreManager.currentTheme);
-        final currentColor =
-            theme.backgroundColors[(_engine.state.level - 1) %
-                theme.backgroundColors.length];
+        final currentColor = Theme.of(context).colorScheme.primary;
         final tempo = 1.0 + (_engine.state.level * 0.15);
 
         return Stack(

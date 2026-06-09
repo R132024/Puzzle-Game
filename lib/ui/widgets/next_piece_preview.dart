@@ -25,7 +25,7 @@ class NextPiecePreview extends StatelessWidget {
             color: const Color(0xFF0D1420).withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.uiGlow.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
