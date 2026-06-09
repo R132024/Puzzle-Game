@@ -123,13 +123,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             FadeTransition(
               opacity: _fadeAnim,
               child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                child: _showModes
-                    ? _buildModeSelection()
-                    : _buildInitialBanner(),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: _showModes
+                        ? _buildModeSelection()
+                        : _buildInitialBanner(),
+                  ),
+                ),
               ),
             ),
           ],
