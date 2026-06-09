@@ -10,6 +10,7 @@ import 'package:cubix_blast/core/game_engine.dart';
 import 'package:cubix_blast/ui/widgets/game_loop_widget.dart';
 import 'package:cubix_blast/ui/widgets/score_board.dart';
 import 'package:cubix_blast/ui/widgets/overlay_menu.dart';
+import 'package:cubix_blast/ui/widgets/game_over_modal.dart';
 import 'package:cubix_blast/ui/widgets/next_piece_preview.dart';
 
 import 'package:cubix_blast/ui/widgets/game_gesture_detector.dart';
@@ -265,23 +266,22 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
                 const SizedBox(height: 8),
               ],
             ),
-            if (_engine.state.status == GameStatus.gameOver ||
-                _engine.state.status == GameStatus.paused)
+            if (_engine.state.status == GameStatus.gameOver)
+              GameOverModal(
+                state: _engine.state,
+                mode: 'multiplayer',
+                onRetry: () => _engine.reset(),
+                onMenu: () => Navigator.of(context).pop(),
+                onResume: () {},
+              )
+            else if (_engine.state.status == GameStatus.paused)
               OverlayMenu(
-                title: _engine.state.status == GameStatus.gameOver
-                    ? 'GAME OVER'
-                    : 'PAUSED',
+                title: 'PAUSED',
                 score: _engine.state.score,
                 bestScore: _engine.highScore,
-                onResume: _engine.state.status == GameStatus.paused
-                    ? _engine.togglePause
-                    : null,
-                onRestart: () {
-                  _engine.reset();
-                },
-                onHome: () {
-                  Navigator.of(context).pop();
-                },
+                onResume: _engine.togglePause,
+                onRestart: () => _engine.reset(),
+                onHome: () => Navigator.of(context).pop(),
               ),
           ],
         );

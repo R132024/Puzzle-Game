@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cubix_blast/core/high_score_store.dart';
 import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/ui/widgets/audio_visualizer_bg.dart';
+import 'dart:ui';
 
 /// Home screen with animated mode selection menu and high scores.
 class HomeScreen extends StatefulWidget {
@@ -104,9 +106,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ],
       ),
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: Center(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: AudioVisualizerBg(
+                color: const Color(0xFF00E5FF),
+                tempoMultiplier: 1.0,
+              ),
+            ),
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(color: Colors.black.withValues(alpha: 0.2)),
+              ),
+            ),
+            FadeTransition(
+              opacity: _fadeAnim,
+              child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: AnimatedSwitcher(
@@ -116,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     : _buildInitialBanner(),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -218,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: const Color(0xFF0F172A).withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF1E293B), width: 2),
       ),
@@ -459,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             return Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: const Color(0xFF0F172A).withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: gradientColors.first.withValues(alpha: 0.3),

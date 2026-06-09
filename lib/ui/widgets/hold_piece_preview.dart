@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cubix_blast/ui/widgets/block_painter_utils.dart';
 import 'package:cubix_blast/core/piece.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/core/score_manager.dart';
@@ -80,10 +81,7 @@ class _HoldPiecePainter extends CustomPainter {
         cellSize - 2,
         cellSize - 2,
       );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(3)),
-        paint,
-      );
+      BlockPainterUtils.drawBlock(canvas: canvas, rect: rect, color: color);
     }
   }
 

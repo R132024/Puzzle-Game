@@ -87,6 +87,20 @@ class _StatItem extends StatelessWidget {
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: valueColor ?? Colors.white,
+                shadows: [
+                  Shadow(
+                    color: (valueColor ?? const Color(0xFF00E5FF)).withValues(
+                      alpha: 0.8,
+                    ),
+                    blurRadius: 10,
+                  ),
+                  Shadow(
+                    color: (valueColor ?? const Color(0xFF00E5FF)).withValues(
+                      alpha: 0.4,
+                    ),
+                    blurRadius: 20,
+                  ),
+                ],
               ),
             );
           },

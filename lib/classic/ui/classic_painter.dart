@@ -1,3 +1,4 @@
+import 'package:cubix_blast/ui/widgets/block_painter_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:cubix_blast/core/constants.dart';
 import 'package:cubix_blast/classic/logic/classic_engine.dart';
@@ -159,38 +160,12 @@ class ClassicPainter extends CustomPainter {
       cellW - 2,
       cellH - 2,
     );
-
-    if (isGhost) {
-      final paint = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(3)),
-        paint,
-      );
-    } else {
-      final paint = Paint()..color = color;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(3)),
-        paint,
-      );
-
-      final highlight = Paint()
-        ..color = Colors.white.withValues(alpha: 0.25)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0;
-      canvas.drawLine(
-        rect.topLeft + const Offset(2, 2),
-        rect.topRight + const Offset(-2, 2),
-        highlight,
-      );
-      canvas.drawLine(
-        rect.topLeft + const Offset(2, 2),
-        rect.bottomLeft + const Offset(2, -2),
-        highlight,
-      );
-    }
+    BlockPainterUtils.drawBlock(
+      canvas: canvas,
+      rect: rect,
+      color: color,
+      isGhost: isGhost,
+    );
   }
 
   void _drawHardDropTrails(Canvas canvas, double cellW, double cellH) {

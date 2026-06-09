@@ -28,12 +28,12 @@ class OverlayMenu extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          color: Colors.black.withValues(alpha: 0.6),
+          color: Colors.black.withValues(alpha: 0.4),
           child: Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
               decoration: BoxDecoration(
-                color: const Color(0xFF0D1420).withValues(alpha: 0.9),
+                color: const Color(0xFF0D1420).withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: AppTheme.uiGlow.withValues(alpha: 0.5),
