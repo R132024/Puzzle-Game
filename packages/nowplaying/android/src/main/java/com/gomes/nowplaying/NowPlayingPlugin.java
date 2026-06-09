@@ -241,6 +241,7 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   }
 
   private byte[] convertIcon(Icon icon) {
+    if (icon == null) return null;
     final Drawable drawable = icon.loadDrawable(context);
     if (drawable instanceof BitmapDrawable) {
       final Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
