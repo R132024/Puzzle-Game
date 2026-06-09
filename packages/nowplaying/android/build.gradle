@@ -22,7 +22,7 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 
 android {
-    namespace 'com.gomes.NowPlaying'
+    namespace 'com.gomes.nowplaying'
     compileSdkVersion 36
 
     defaultConfig {

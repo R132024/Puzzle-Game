@@ -41,7 +41,7 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <service android:name="com.gomes.NowPlaying.NowPlayingListenerService"
+        <service android:name="com.gomes.nowplaying.NowPlayingListenerService"
             android:label="NowPlayingListenerService"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="true">
