@@ -60,15 +60,28 @@ class _AudioVisualizerBgState extends State<AudioVisualizerBg>
             return Stack(
               fit: StackFit.expand,
               children: [
-                if (track != null && track.hasImage)
+                if (track != null && track.hasImage) ...[
                   Positioned.fill(
-                    child: Image(
-                      image: track.image!,
-                      fit: BoxFit.cover,
-                      color: Colors.black.withValues(alpha: 0.7),
-                      colorBlendMode: BlendMode.darken,
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Image(
+                        image: track.image!,
+                        fit: BoxFit.cover,
+                        color: Colors.black.withValues(alpha: 0.8),
+                        colorBlendMode: BlendMode.darken,
+                      ),
                     ),
                   ),
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.4,
+                      child: Image(
+                        image: track.image!,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ],
                 ParticlesBg(
                   color: widget.color,
                   speedMultiplier: widget.tempoMultiplier,
