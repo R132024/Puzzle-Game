@@ -177,7 +177,7 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          filter: ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
                           child: Container(
                             width: canvasW,
                             height: canvasH,
