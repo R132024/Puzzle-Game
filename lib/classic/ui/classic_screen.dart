@@ -2,7 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cubix_blast/classic/logic/classic_engine.dart';
-import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/core/high_score_store.dart';
+import 'dart:ui';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/classic/ui/classic_painter.dart';
 import 'package:cubix_blast/core/game_engine.dart';
@@ -190,31 +191,37 @@ class _ClassicScreenState extends State<ClassicScreen>
                                     _engine.shakeTimer)
                               : 0,
                         ),
-                        child: Container(
-                          width: canvasW,
-                          height: canvasH,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: const Color(0xFF1A2332),
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF00E5FF,
-                                ).withValues(alpha: 0.08),
-                                blurRadius: 30,
-                                spreadRadius: 5,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              width: canvasW,
+                              height: canvasH,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: const Color(0xFF1A2332),
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF00E5FF,
+                                    ).withValues(alpha: 0.08),
+                                    blurRadius: 30,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
-                            child: CustomPaint(
-                              painter: ClassicPainter(
-                                engine: _engine,
-                                repaint: _frameNotifier,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: CustomPaint(
+                                  painter: ClassicPainter(
+                                    engine: _engine,
+                                    repaint: _frameNotifier,
+                                  ),
+                                ),
                               ),
                             ),
                           ),

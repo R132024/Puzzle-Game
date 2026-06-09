@@ -57,7 +57,7 @@ class AppTheme {
   // ─── Game-specific colors ───────────────────────────────────
 
   static const Color gridBackground = Color(
-    0xAA060A14,
+    0x44060A14,
   ); // Semi-transparent for visualizer
   static const gridLine = Color(0xFF1A2332);
   static const ghostColor = Color(0x40FFFFFF);

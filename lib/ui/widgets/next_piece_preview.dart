@@ -4,6 +4,7 @@ import 'package:cubix_blast/core/piece.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import '../theme/app_theme.dart';
+import 'dart:ui';
 
 /// Shows a mini preview of the next piece.
 class NextPiecePreview extends StatelessWidget {
@@ -13,18 +14,24 @@ class NextPiecePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 100,
-      height: 100,
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D1420),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.uiGlow.withValues(alpha: 0.3),
-          width: 1,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D1420).withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.uiGlow.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: CustomPaint(painter: _NextPiecePainter(piece)),
         ),
       ),
-      child: CustomPaint(painter: _NextPiecePainter(piece)),
     );
   }
 }

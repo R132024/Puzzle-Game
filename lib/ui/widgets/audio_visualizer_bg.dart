@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:nowplaying/nowplaying_track.dart';
 import 'package:cubix_blast/core/music_service.dart';
 import 'particles_bg.dart';
+import 'dart:ui';
 
 /// A simulated audio visualizer background with animated bars.
 class AudioVisualizerBg extends StatefulWidget {

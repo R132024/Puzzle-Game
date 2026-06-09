@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -210,31 +211,40 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
                                     _engine.shakeTimer)
                               : 0,
                         ),
-                        child: Container(
-                          width: canvasW,
-                          height: canvasH,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: const Color(0xFF1A2332),
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                            boxShadow: [
-                              BoxShadow(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              width: canvasW,
+                              height: canvasH,
+                              decoration: BoxDecoration(
                                 color: const Color(
-                                  0xFF00E5FF,
-                                ).withValues(alpha: 0.08),
-                                blurRadius: 30,
-                                spreadRadius: 5,
+                                  0xFF060A14,
+                                ).withValues(alpha: 0.2),
+                                border: Border.all(
+                                  color: const Color(0xFF1A2332),
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF00E5FF,
+                                    ).withValues(alpha: 0.08),
+                                    blurRadius: 30,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
-                            child: CustomPaint(
-                              painter: MultiplayerPainter(
-                                engine: _engine,
-                                repaint: _frameNotifier,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: CustomPaint(
+                                  painter: MultiplayerPainter(
+                                    engine: _engine,
+                                    repaint: _frameNotifier,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
