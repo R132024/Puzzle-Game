@@ -229,8 +229,10 @@ class _GameOverModalState extends State<GameOverModal> {
                             ],
                             const SizedBox(height: 24),
                           ],
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            runSpacing: 8,
                             children: [
                               if (isGameOver)
                                 ElevatedButton(
