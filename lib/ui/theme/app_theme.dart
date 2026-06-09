@@ -54,9 +54,7 @@ class AppTheme {
 
   // ─── Game-specific colors ───────────────────────────────────
 
-  static const Color gridBackground = Color(
-    0x44060A14,
-  ); // Semi-transparent for visualizer
-  static const gridLine = Color(0xFF1A2332);
+  static const Color gridBackground = Colors.transparent; // Fully transparent for visualizer to show through clearly
+  static const gridLine = Color(0x22FFFFFF); // faint white line instead of blue
   static const ghostColor = Color(0x40FFFFFF);
 }

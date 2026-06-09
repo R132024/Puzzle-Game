@@ -202,19 +202,15 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
                             width: canvasW,
                             height: canvasH,
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF060A14,
-                              ).withValues(alpha: 0.2),
+                              color: Colors.black.withValues(alpha: 0.3),
                               border: Border.all(
-                                color: const Color(0xFF1A2332),
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                                 width: 2,
                               ),
                               borderRadius: BorderRadius.circular(4),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(
-                                    0xFF00E5FF,
-                                  ).withValues(alpha: 0.08),
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                                   blurRadius: 30,
                                   spreadRadius: 5,
                                 ),

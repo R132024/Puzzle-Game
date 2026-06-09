@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/game_engine.dart';
-import '../theme/app_theme.dart';
 import '../../core/score_manager.dart';
 import 'dart:ui';
 
@@ -19,7 +18,7 @@ class ScoreBoard extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
             color: const Color(0xFF0D1420).withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(16),
@@ -35,24 +34,31 @@ class ScoreBoard extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _StatItem(label: 'BEST', value: highScore.toString()),
-              _StatItem(label: 'SCORE', value: state.score.toString()),
-              _StatItem(label: 'LVL', value: state.level.toString()),
-              _StatItem(label: 'LINES', value: state.linesCleared.toString()),
-              ValueListenableBuilder<int>(
-                valueListenable: ScoreManager.coinsNotifier,
-                builder: (context, coins, child) {
-                  return _StatItem(
-                    label: 'COINS',
-                    value: coins.toString(),
-                    valueColor: Colors.amber,
-                  );
-                },
-              ),
-            ],
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _StatItem(label: 'BEST', value: highScore.toString()),
+                const SizedBox(width: 8),
+                _StatItem(label: 'SCORE', value: state.score.toString()),
+                const SizedBox(width: 8),
+                _StatItem(label: 'LVL', value: state.level.toString()),
+                const SizedBox(width: 8),
+                _StatItem(label: 'LINES', value: state.linesCleared.toString()),
+                const SizedBox(width: 8),
+                ValueListenableBuilder<int>(
+                  valueListenable: ScoreManager.coinsNotifier,
+                  builder: (context, coins, child) {
+                    return _StatItem(
+                      label: 'COINS',
+                      value: coins.toString(),
+                      valueColor: Colors.amber,
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -70,6 +76,7 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final numValue = int.tryParse(value) ?? 0;
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
@@ -92,13 +99,13 @@ class _StatItem extends StatelessWidget {
                 color: valueColor ?? Colors.white,
                 shadows: [
                   Shadow(
-                    color: (valueColor ?? const Color(0xFF00E5FF)).withValues(
+                    color: (valueColor ?? Theme.of(context).colorScheme.primary).withValues(
                       alpha: 0.8,
                     ),
                     blurRadius: 10,
                   ),
                   Shadow(
-                    color: (valueColor ?? const Color(0xFF00E5FF)).withValues(
+                    color: (valueColor ?? Theme.of(context).colorScheme.primary).withValues(
                       alpha: 0.4,
                     ),
                     blurRadius: 20,
