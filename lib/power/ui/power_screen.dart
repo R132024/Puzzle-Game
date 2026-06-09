@@ -10,7 +10,7 @@ import 'package:cubix_blast/ui/widgets/game_loop_widget.dart';
 import 'package:cubix_blast/ui/widgets/score_board.dart';
 import 'package:cubix_blast/ui/widgets/overlay_menu.dart';
 import 'package:cubix_blast/ui/widgets/next_piece_preview.dart';
-import 'package:cubix_blast/ui/widgets/control_pad.dart';
+
 import 'package:cubix_blast/ui/widgets/audio_visualizer_bg.dart';
 import 'package:cubix_blast/ui/widgets/hold_piece_preview.dart';
 
@@ -270,14 +270,7 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
               ),
             ),
 
-            ControlPad(
-              onLeft: _engine.moveLeft,
-              onRight: _engine.moveRight,
-              onRotate: _engine.rotateClockwise,
-              onSoftDrop: _engine.softDrop,
-              onHardDrop: _engine.hardDrop,
-              onHold: _engine.holdPiece,
-            ),
+
             const SizedBox(height: 8),
           ],
         ),
