@@ -128,6 +128,26 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
     } else {
       context.registerReceiver(changeBroadcastReceiver, intentFilter);
     }
+
+    // Push initial state to Dart immediately
+    try {
+      android.media.session.MediaSessionManager mediaSessionManager = (android.media.session.MediaSessionManager) context.getSystemService(Context.MEDIA_SESSION_SERVICE);
+      java.util.List<android.media.session.MediaController> controllers = mediaSessionManager.getActiveSessions(new android.content.ComponentName(context, NowPlayingListenerService.class));
+      android.media.session.MediaController activeController = null;
+      for (android.media.session.MediaController c : controllers) {
+        if (c.getPlaybackState() != null && c.getPlaybackState().getState() == android.media.session.PlaybackState.STATE_PLAYING) {
+          activeController = c;
+          break;
+        }
+      }
+      if (activeController == null && !controllers.isEmpty()) {
+        activeController = controllers.get(0);
+      }
+      if (activeController != null) {
+        java.util.Map<String, Object> data = extractFieldsFor(activeController.getSessionToken(), null);
+        if (data != null) sendTrack(data);
+      }
+    } catch (Exception e) {}
   }
 
   private void detach() {
