@@ -139,7 +139,8 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
       builder: (context, constraints) {
         final maxH = constraints.maxHeight - 120;
         final maxW = constraints.maxWidth;
-        final canvasW = (maxH * 0.5).clamp(0.0, maxW * 0.5);
+        final maxAllowedW = maxW - 230 > 0 ? maxW - 230 : maxW * 0.3;
+        final canvasW = (maxH * 0.5).clamp(0.0, min(maxW * 0.5, maxAllowedW));
         final canvasH = canvasW * 2; // 10:20 ratio
 
         final theme = GameThemes.getTheme(ScoreManager.currentTheme);
