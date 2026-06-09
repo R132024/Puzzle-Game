@@ -134,11 +134,12 @@ class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserv
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'HOLD',
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'HOLD',
                         style: TextStyle(
                           fontSize: 10,
                           letterSpacing: 3,
@@ -148,11 +149,9 @@ class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserv
                       const SizedBox(height: 8),
                       HoldPiecePreview(piece: _engine.heldPiece, canHold: _engine.canHold),
                       const SizedBox(height: 24),
-                      SizedBox(
-                        width: 100,
-                        child: ScoreBoard(state: _engine.state, highScore: _engine.highScore),
-                      ),
+                      ScoreBoard(state: _engine.state, highScore: _engine.highScore),
                     ],
+                  ),
                   ),
                   const SizedBox(width: 12),
 
@@ -227,11 +226,12 @@ class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserv
                   ),
                   const SizedBox(width: 12),
 
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'NEXT',
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'NEXT',
                         style: TextStyle(
                           fontSize: 10,
                           letterSpacing: 3,
@@ -241,6 +241,7 @@ class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserv
                       const SizedBox(height: 8),
                       NextPiecePreview(piece: _engine.nextPiece),
                     ],
+                  ),
                   ),
                 ],
               ),

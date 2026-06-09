@@ -14,64 +14,37 @@ class NativeImageResolver implements NowPlayingImageResolver {
   Future<ImageProvider?> resolve(NowPlayingTrack track) async {
     if (track.hasImage) return null;
 
-    final String query = Uri.encodeQueryComponent([
-      if (track.artist != null) 'artist:(${_rationalise(track.artist!)})',
-      if (track.album != null) 'release:(${_rationalise(track.album!)})',
-    ].join(' AND '));
+    final String query = Uri.encodeQueryComponent('${track.artist ?? ''} ${track.title ?? ''}'.trim());
     if (query.isEmpty) return null;
 
-    print('NowPlaying - image resolution query: $query');
+    final url = 'https://itunes.apple.com/search?term=$query&entity=song&limit=1';
+    final json = await _getJson(url);
+    if (json == null || json['results'] == null || (json['results'] as List).isEmpty) return null;
 
-    final json = await _getJson('https://musicbrainz.org/ws/2/release?primarytype=album&limit=100&query=$query');
-    if (json == null) return null;
-
-    for (Map<String, dynamic> release in json['releases']) {
-      if (release['score'] as int >= 100) {
-        final albumArt = await _getAlbumArt(release['id']);
-        if (albumArt != null) return albumArt;
-      }
+    final result = json['results'][0];
+    String? artworkUrl = result['artworkUrl100'];
+    if (artworkUrl != null) {
+      artworkUrl = artworkUrl.replaceAll('100x100bb.jpg', '600x600bb.jpg');
+      return NetworkImage(artworkUrl);
     }
 
     return null;
   }
 
-  Future<ImageProvider?> _getAlbumArt(String? mbid) async {
-    print('NowPlaying - trying to find cover for $mbid');
-    final json = await _getJson('https://coverartarchive.org/release/$mbid');
-    if (json == null) return null;
-
-    String? image;
-    String? thumb;
-
-    for (Map<String, dynamic> imageData in json['images']) {
-      if (imageData['front'] == true) {
-        final thumbs = Map<String, String>.from(imageData['thumbnails']);
-        thumb ??= thumbs['large'];
-        image = imageData['image'];
-        if (thumb != null) break;
-      }
-    }
-
-    final String? usable = thumb ?? image;
-    return usable is String ? NetworkImage(usable) : null;
-  }
-
   Future<Map<String, dynamic>?> _getJson(String url) async {
-    final info = await PackageInfo.fromPlatform();
     final client = HttpClient();
-    final req = await client.openUrl('GET', Uri.parse(url));
-    req.headers.add('Accept', 'application/json');
-    req.headers.add('User-Agent', 'Flutter NowPlaying ${info.version} in ${info.packageName} ( nicsford+NowPlayingFlutter@gmail.com )');
-    final resp = await req.close();
-    if (resp.statusCode != 200) return null;
+    try {
+      final req = await client.openUrl('GET', Uri.parse(url));
+      final resp = await req.close();
+      if (resp.statusCode != 200) return null;
 
-    final completer = Completer<Map<String, dynamic>>();
-    final body = StringBuffer();
-    resp.transform(utf8.decoder).listen(body.write, onDone: () {
-      final json = jsonDecode(body.toString());
-      completer.complete(json);
-    });
-    return completer.future;
+      final body = await resp.transform(utf8.decoder).join();
+      return jsonDecode(body);
+    } catch (e) {
+      return null;
+    } finally {
+      client.close();
+    }
   }
 
   String _rationalise(String text) {
