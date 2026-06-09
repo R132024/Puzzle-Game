@@ -1,0 +1,278 @@
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:cubix_blast/classic/logic/classic_engine.dart';
+import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/theme/game_themes.dart';
+import 'package:cubix_blast/classic/ui/classic_painter.dart';
+import 'package:cubix_blast/core/game_engine.dart';
+import 'package:cubix_blast/ui/widgets/game_loop_widget.dart';
+import 'package:cubix_blast/ui/widgets/score_board.dart';
+import 'package:cubix_blast/ui/widgets/overlay_menu.dart';
+import 'package:cubix_blast/ui/widgets/next_piece_preview.dart';
+import 'package:cubix_blast/ui/widgets/control_pad.dart';
+import 'package:cubix_blast/ui/widgets/audio_visualizer_bg.dart';
+import 'package:cubix_blast/ui/widgets/hold_piece_preview.dart';
+
+/// Classic mode game screen.
+class ClassicScreen extends StatefulWidget {
+  const ClassicScreen({super.key});
+
+  @override
+  State<ClassicScreen> createState() => _ClassicScreenState();
+}
+
+class _ClassicScreenState extends State<ClassicScreen> with WidgetsBindingObserver {
+  late final ClassicEngine _engine;
+  final ValueNotifier<int> _frameNotifier = ValueNotifier(0);
+  final FocusNode _focusNode = FocusNode();
+
+  double _accumulatedPanX = 0;
+  double _panStartX = 0;
+  double _panStartY = 0;
+  bool _panVerticalTriggered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _engine = ClassicEngine();
+    _engine.reset();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _frameNotifier.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if ((state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) &&
+        _engine.state.status == GameStatus.playing) {
+      _engine.togglePause();
+    }
+  }
+
+  void _handleKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return;
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        _engine.moveLeft();
+      case LogicalKeyboardKey.arrowRight:
+        _engine.moveRight();
+      case LogicalKeyboardKey.arrowUp:
+        _engine.rotateClockwise();
+      case LogicalKeyboardKey.arrowDown:
+        _engine.softDrop();
+      case LogicalKeyboardKey.space:
+        _engine.hardDrop();
+      case LogicalKeyboardKey.keyP:
+      case LogicalKeyboardKey.escape:
+        _engine.togglePause();
+      case LogicalKeyboardKey.keyR:
+        if (_engine.state.status == GameStatus.gameOver) {
+          _engine.reset();
+        }
+      default:
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF060A14),
+      appBar: AppBar(
+        title: const Text('CLÁSICO'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: KeyboardListener(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: _handleKey,
+        child: GameLoopWidget(
+          engine: _engine,
+          frameNotifier: _frameNotifier,
+          builder: (context) => Stack(
+            children: [
+              _buildLayout(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLayout() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxH = constraints.maxHeight - 120;
+        final maxW = constraints.maxWidth;
+        final canvasW = (maxH * 0.5).clamp(0.0, maxW * 0.5);
+        final canvasH = canvasW * 2; // 10:20 ratio
+        
+        final theme = GameThemes.getTheme(ScoreManager.currentTheme);
+        final currentColor = theme.backgroundColors[(_engine.state.level - 1) % theme.backgroundColors.length];
+        final tempo = 1.0 + (_engine.state.level * 0.15);
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: AudioVisualizerBg(color: currentColor, tempoMultiplier: tempo),
+            ),
+            Column(
+              children: [
+                Expanded(
+                  child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'HOLD',
+                        style: TextStyle(
+                          fontSize: 10,
+                          letterSpacing: 3,
+                          color: const Color(0xFF00E5FF).withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      HoldPiecePreview(piece: _engine.heldPiece, canHold: _engine.canHold),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 100,
+                        child: ScoreBoard(state: _engine.state, highScore: _engine.highScore),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+
+                  GestureDetector(
+                    onPanStart: (details) {
+                      _panStartX = details.localPosition.dx;
+                      _panStartY = details.localPosition.dy;
+                      _accumulatedPanX = 0;
+                      _panVerticalTriggered = false;
+                    },
+                    onPanUpdate: (details) {
+                      if (_panVerticalTriggered) return;
+
+                      final dy = details.localPosition.dy - _panStartY;
+                      final dx = details.localPosition.dx - _panStartX;
+
+                      if (dy.abs() > 40 && dy.abs() > dx.abs()) {
+                        _panVerticalTriggered = true;
+                        if (dy > 0) {
+                          _engine.hardDrop();
+                        } else {
+                          _engine.holdPiece();
+                        }
+                        return;
+                      }
+
+                      _accumulatedPanX += details.delta.dx;
+                      const threshold = 30.0;
+                      while (_accumulatedPanX > threshold) {
+                        _engine.moveRight();
+                        _accumulatedPanX -= threshold;
+                      }
+                      while (_accumulatedPanX < -threshold) {
+                        _engine.moveLeft();
+                        _accumulatedPanX += threshold;
+                      }
+                    },
+                    onTap: () => _engine.rotateClockwise(),
+                    child: Transform.translate(
+                      offset: Offset(
+                        _engine.shakeTimer > 0 ? (sin(_engine.state.elapsedSeconds * 50) * 15 * _engine.shakeTimer) : 0,
+                        _engine.shakeTimer > 0 ? (cos(_engine.state.elapsedSeconds * 60) * 15 * _engine.shakeTimer) : 0,
+                      ),
+                      child: Container(
+                        width: canvasW,
+                        height: canvasH,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(0xFF1A2332),
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF00E5FF).withValues(alpha: 0.08),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: CustomPaint(
+                          painter: ClassicPainter(
+                            engine: _engine,
+                            repaint: _frameNotifier,
+                          ),
+                        ),
+                      ),
+                    ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'NEXT',
+                        style: TextStyle(
+                          fontSize: 10,
+                          letterSpacing: 3,
+                          color: const Color(0xFF00E5FF).withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      NextPiecePreview(piece: _engine.nextPiece),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            ControlPad(
+              onLeft: _engine.moveLeft,
+              onRight: _engine.moveRight,
+              onRotate: _engine.rotateClockwise,
+              onSoftDrop: _engine.softDrop,
+              onHardDrop: _engine.hardDrop,
+              onHold: _engine.holdPiece,
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+        if (_engine.state.status == GameStatus.gameOver || _engine.state.status == GameStatus.paused)
+          OverlayMenu(
+            title: _engine.state.status == GameStatus.gameOver ? 'GAME OVER' : 'PAUSED',
+            score: _engine.state.score,
+            bestScore: _engine.highScore,
+            onResume: _engine.state.status == GameStatus.paused ? _engine.togglePause : null,
+            onRestart: () {
+              _engine.reset();
+            },
+            onHome: () {
+              Navigator.of(context).pop();
+            },
+          ),
+      ],
+    );
+  },
+);
+  }
+}

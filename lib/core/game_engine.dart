@@ -1,0 +1,109 @@
+/// Shared game state model and abstract engine contract.
+///
+/// Pure Dart – no Flutter imports.
+library;
+
+import 'piece.dart';
+
+/// Running status of a game session.
+enum GameStatus { ready, playing, paused, gameOver }
+
+class GameState {
+  const GameState({
+    this.status = GameStatus.ready,
+    this.score = 0,
+    this.level = 1,
+    this.linesCleared = 0,
+    this.elapsedSeconds = 0.0,
+  });
+
+  final GameStatus status;
+  final int score;
+  final int level;
+  final int linesCleared;
+  final double elapsedSeconds;
+
+  GameState copyWith({
+    GameStatus? status,
+    int? score,
+    int? level,
+    int? linesCleared,
+    double? elapsedSeconds,
+  }) =>
+      GameState(
+        status: status ?? this.status,
+        score: score ?? this.score,
+        level: level ?? this.level,
+        linesCleared: linesCleared ?? this.linesCleared,
+        elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+      );
+}
+
+/// The contract that both ClassicEngine and ArenaEngine implement.
+///
+/// The UI layer interacts **only** through this interface, making
+/// the game loop and input handling mode-agnostic.
+class FloatingText {
+  FloatingText(this.text, this.timer, this.colorArgb);
+  final String text;
+  double timer;
+  final int colorArgb;
+}
+
+class HardDropTrail {
+  HardDropTrail(this.col, this.startRow, this.endRow, this.colorIndex, this.timer);
+  final int col;
+  final int startRow;
+  final int endRow;
+  final int colorIndex;
+  double timer;
+}
+
+abstract class GameEngine {
+  /// Current game state (score, level, status).
+  GameState get state;
+
+  /// The piece currently under player control (null between spawns).
+  CubixPiece? get activePiece;
+
+  /// The next piece that will spawn.
+  CubixPiece? get nextPiece;
+
+  /// The piece currently held in reserve.
+  CubixPiece? get heldPiece;
+  
+  /// True if the player is allowed to hold a piece this turn.
+  bool get canHold;
+
+  /// Screen shake timer (for hard drops).
+  double get shakeTimer;
+  
+  /// List of hard drop trails.
+  List<HardDropTrail> get hardDropTrails;
+  
+  /// List of floating text popups (combos, lines cleared).
+  List<FloatingText> get floatingTexts;
+  
+  /// High score for the current mode.
+  int get highScore;
+
+  // ─── Lifecycle ──────────────────────────────────────────────
+
+  /// Advance the simulation by [dt] seconds.
+  void update(double dt);
+
+  /// Start or restart the game from scratch.
+  void reset();
+
+  /// Toggle pause / resume.
+  void togglePause();
+
+  // ─── Player input ───────────────────────────────────────────
+
+  void moveLeft();
+  void moveRight();
+  void rotateClockwise();
+  void softDrop();
+  void hardDrop();
+  void holdPiece();
+}
