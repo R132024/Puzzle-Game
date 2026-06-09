@@ -75,7 +75,7 @@ class NowPlayingTrack {
   bool get imageNeedsResolving =>
       _resolutionState == _NowPlayingImageResolutionState.unresolved;
 
-  String get _imageId => '$artist:$album';
+  String get _imageId => '$title:$artist:$album';
 
   @override
   operator ==(other) =>
@@ -120,7 +120,7 @@ class NowPlayingTrack {
     final state = NowPlayingState.values[json['state']];
     if (state == NowPlayingState.stopped) return notPlaying;
 
-    final String imageId = '${json['artist']}:${json['album']}';
+    final String imageId = '${json['title']}:${json['artist']}:${json['album']}';
 
     if (!_images.containsKey(imageId)) {
       final Uint8List? imageData = json['image'];
