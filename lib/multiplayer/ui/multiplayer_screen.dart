@@ -202,7 +202,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
                             width: canvasW,
                             height: canvasH,
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.3),
+                              color: Colors.transparent,
                               border: Border.all(
                                 color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                                 width: 2,
