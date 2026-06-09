@@ -119,12 +119,9 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
   Widget _buildLayout() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxH = constraints.maxHeight - 120;
+        final maxH = constraints.maxHeight - 140;
         final maxW = constraints.maxWidth;
-        final maxAllowedW = maxW - 230 > 0 ? maxW - 230 : maxW * 0.3;
-        final double canvasW = (maxH * 0.5)
-            .clamp(0.0, min<double>(maxW * 0.5, maxAllowedW.toDouble()))
-            .toDouble();
+        final double canvasW = (maxH * 0.5).clamp(0.0, maxW * 0.95).toDouble();
         final canvasH = canvasW * 2; // 10:20 ratio
 
         final theme = GameThemes.getTheme(ScoreManager.currentTheme);
@@ -141,117 +138,84 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
             ),
             Column(
               children: [
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'HOLD',
-                            style: TextStyle(
-                              fontSize: 10,
-                              letterSpacing: 3,
-                              color: const Color(
-                                0xFFAA00FF,
-                              ).withValues(alpha: 0.7),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          HoldPiecePreview(
-                            piece: _engine.heldPiece,
-                            canHold: _engine.canHold,
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: 100,
-                            child: ScoreBoard(
-                              state: _engine.state,
-                              highScore: _engine.highScore,
-                            ),
-                          ),
-                        ],
+                      HoldPiecePreview(
+                        piece: _engine.heldPiece,
+                        canHold: _engine.canHold,
                       ),
-                      const SizedBox(width: 12),
-
-                      Transform.translate(
-                        offset: Offset(
-                          _engine.shakeTimer > 0
-                              ? (sin(_engine.state.elapsedSeconds * 50) *
-                                    15 *
-                                    _engine.shakeTimer)
-                              : 0,
-                          _engine.shakeTimer > 0
-                              ? (cos(_engine.state.elapsedSeconds * 60) *
-                                    15 *
-                                    _engine.shakeTimer)
-                              : 0,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Container(
-                              width: canvasW,
-                              height: canvasH,
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF060A14,
-                                ).withValues(alpha: 0.2),
-                                border: Border.all(
-                                  color: const Color(0xFF1A2332),
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFFAA00FF,
-                                    ).withValues(alpha: 0.08),
-                                    blurRadius: 30,
-                                    spreadRadius: 5,
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: CustomPaint(
-                                  painter: ArenaPainter(
-                                    engine: _engine,
-                                    repaint: _frameNotifier,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ScoreBoard(
+                          state: _engine.state,
+                          highScore: _engine.highScore,
                         ),
                       ),
-                      const SizedBox(width: 12),
-
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'NEXT',
-                            style: TextStyle(
-                              fontSize: 10,
-                              letterSpacing: 3,
-                              color: const Color(
-                                0xFFAA00FF,
-                              ).withValues(alpha: 0.7),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          NextPiecePreview(piece: _engine.nextPiece),
-                        ],
-                      ),
+                      const SizedBox(width: 8),
+                      NextPiecePreview(piece: _engine.nextPiece),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 8),
+                Expanded(
+                  child: Center(
+                    child: Transform.translate(
+                      offset: Offset(
+                        _engine.shakeTimer > 0
+                            ? (sin(_engine.state.elapsedSeconds * 50) *
+                                  15 *
+                                  _engine.shakeTimer)
+                            : 0,
+                        _engine.shakeTimer > 0
+                            ? (cos(_engine.state.elapsedSeconds * 60) *
+                                  15 *
+                                  _engine.shakeTimer)
+                            : 0,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            width: canvasW,
+                            height: canvasH,
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF060A14,
+                              ).withValues(alpha: 0.2),
+                              border: Border.all(
+                                color: const Color(0xFF1A2332),
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF00E5FF,
+                                  ).withValues(alpha: 0.08),
+                                  blurRadius: 30,
+                                  spreadRadius: 5,
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: CustomPaint(
+                                painter: ArenaPainter(
+                                  engine: _engine,
+                                  repaint: _frameNotifier,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
             if (_engine.state.status == GameStatus.gameOver)

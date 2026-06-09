@@ -19,7 +19,7 @@ class ScoreBoard extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: const Color(0xFF0D1420).withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(16),
@@ -35,17 +35,13 @@ class ScoreBoard extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _StatItem(label: 'BEST', value: highScore.toString()),
-              const SizedBox(height: 16),
               _StatItem(label: 'SCORE', value: state.score.toString()),
-              const SizedBox(height: 16),
-              _StatItem(label: 'LEVEL', value: state.level.toString()),
-              const SizedBox(height: 16),
+              _StatItem(label: 'LVL', value: state.level.toString()),
               _StatItem(label: 'LINES', value: state.linesCleared.toString()),
-              const SizedBox(height: 16),
               ValueListenableBuilder<int>(
                 valueListenable: ScoreManager.coinsNotifier,
                 builder: (context, coins, child) {
@@ -91,7 +87,7 @@ class _StatItem extends StatelessWidget {
             return Text(
               val.toString(),
               style: GoogleFonts.orbitron(
-                fontSize: 22,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: valueColor ?? Colors.white,
                 shadows: [

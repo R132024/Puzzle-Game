@@ -19,8 +19,8 @@ class NextPiecePreview extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          width: 100,
-          height: 100,
+          width: 70,
+          height: 70,
           decoration: BoxDecoration(
             color: const Color(0xFF0D1420).withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(16),
