@@ -18,8 +18,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _fadeAnim;
 
   bool _showModes = false;
-  HighScore? _classicRecord;
-  HighScore? _arenaRecord;
+  List<Map<String, dynamic>> _leaderboard = [];
 
   @override
   void initState() {
@@ -42,12 +41,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _loadRecords() async {
-    final classic = await HighScoreStore.getHighScore('classic');
-    final arena = await HighScoreStore.getHighScore('arena');
+    final scores = await HighScoreStore.getAllHighScores();
     if (mounted) {
       setState(() {
-        _classicRecord = classic;
-        _arenaRecord = arena;
+        _leaderboard = scores;
       });
     }
   }
@@ -130,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
         const SizedBox(height: 60),
-        _buildRecordsBanner(),
+        _buildLeaderboardTable(),
         const SizedBox(height: 60),
         ElevatedButton(
           onPressed: () {
@@ -189,7 +186,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildRecordsBanner() {
+  String _translateMode(String mode) {
+    switch (mode) {
+      case 'classic': return 'Clásico';
+      case 'arena': return 'Arena';
+      case 'power': return 'Poderes';
+      case 'multiplayer': return 'Multijugador';
+      default: return mode;
+    }
+  }
+
+  Widget _buildLeaderboardTable() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -198,61 +205,115 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         border: Border.all(color: const Color(0xFF1E293B), width: 2),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'MEJORES PUNTUACIONES',
-            style: GoogleFonts.orbitron(
-              fontSize: 16,
-              color: Colors.white70,
-              letterSpacing: 2,
+          Center(
+            child: Text(
+              'TABLA DE PUNTUACIONES',
+              style: GoogleFonts.orbitron(
+                fontSize: 16,
+                color: Colors.white70,
+                letterSpacing: 2,
+              ),
             ),
           ),
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildRecordItem('CLÁSICO', _classicRecord, const Color(0xFF00E5FF)),
-              Container(width: 1, height: 60, color: Colors.white24),
-              _buildRecordItem('ARENA', _arenaRecord, const Color(0xFFAA00FF)),
-            ],
-          ),
+          if (_leaderboard.isEmpty)
+            Center(
+              child: Text(
+                'Aún no hay puntuaciones',
+                style: GoogleFonts.orbitron(
+                  fontSize: 14,
+                  color: Colors.white54,
+                ),
+              ),
+            )
+          else ...[
+            // Header
+            Row(
+              children: [
+                Expanded(flex: 2, child: _buildTableHeader('Nombre')),
+                Expanded(flex: 3, child: _buildTableHeader('Tipo de juego')),
+                Expanded(flex: 2, child: _buildTableHeader('Nivel')),
+                Expanded(flex: 3, child: _buildTableHeader('Puntuación', alignRight: true)),
+              ],
+            ),
+            const Divider(color: Colors.white24, height: 20),
+            // Rows
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _leaderboard.length,
+              itemBuilder: (context, index) {
+                final record = _leaderboard[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          record['name'] ?? '----',
+                          style: GoogleFonts.orbitron(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          _translateMode(record['mode'] ?? ''),
+                          style: GoogleFonts.orbitron(
+                            fontSize: 12,
+                            color: const Color(0xFF00E5FF),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          '${record['level'] ?? 1}',
+                          style: GoogleFonts.orbitron(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          '${record['score'] ?? 0}',
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.orbitron(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF00E676),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildRecordItem(String mode, HighScore? record, Color color) {
-    return Column(
-      children: [
-        Text(
-          mode,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: color.withValues(alpha: 0.8),
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          record?.hasRecord == true ? '${record!.score}' : '0',
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          record?.hasRecord == true ? record!.name : '----',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.white.withValues(alpha: 0.5),
-            letterSpacing: 2,
-          ),
-        ),
-      ],
+  Widget _buildTableHeader(String title, {bool alignRight = false}) {
+    return Text(
+      title,
+      textAlign: alignRight ? TextAlign.right : TextAlign.left,
+      style: GoogleFonts.orbitron(
+        fontSize: 10,
+        fontWeight: FontWeight.bold,
+        color: Colors.white54,
+        letterSpacing: 1,
+      ),
     );
   }
 

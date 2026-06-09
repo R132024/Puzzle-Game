@@ -61,7 +61,7 @@ class _GameOverModalState extends State<GameOverModal> {
   Future<void> _saveScore() async {
     final name = _nameController.text.trim().toUpperCase();
     if (name.length == 4) {
-      await HighScoreStore.saveHighScore(widget.mode, widget.state.score, name);
+      await HighScoreStore.saveHighScore(widget.mode, widget.state.score, widget.state.level, name);
       if (mounted) {
         setState(() {
           _saved = true;
@@ -185,7 +185,7 @@ class _GameOverModalState extends State<GameOverModal> {
                               foregroundColor: Colors.black,
                               minimumSize: const Size(double.infinity, 48),
                             ),
-                            child: const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           ),
                         ] else if (_saved) ...[
                           const Text('¡Guardado!', style: TextStyle(color: Color(0xFF00E676), fontSize: 18)),
