@@ -157,11 +157,15 @@ class NowPlaying with WidgetsBindingObserver {
   }
 
   Future<NowPlayingTrack> _getCurrentDeviceTrack() async {
-    if (isIOS) {
+    try {
       final data = await _channel.invokeMethod('track');
-      final json = Map<String, Object?>.from(data);
-      final track = NowPlayingTrack.fromJson(json);
-      if (_shouldNotifyFor(track)) return track;
+      if (data != null) {
+        final json = Map<String, Object?>.from(data);
+        final track = NowPlayingTrack.fromJson(json);
+        if (_shouldNotifyFor(track)) return track;
+      }
+    } catch (e) {
+      print('NowPlaying track error: $e');
     }
 
     if (isAndroid && _shouldNotifyFor(_androidTrack)) return _androidTrack;

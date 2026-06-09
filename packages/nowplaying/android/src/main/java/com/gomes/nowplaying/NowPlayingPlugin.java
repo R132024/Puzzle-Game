@@ -65,26 +65,24 @@ public class NowPlayingPlugin implements FlutterPlugin, MethodCallHandler, Activ
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     if (COMMAND_TRACK.equals(call.method)) {
-      if (trackData.isEmpty()) {
-        try {
-          android.media.session.MediaSessionManager mediaSessionManager = (android.media.session.MediaSessionManager) context.getSystemService(Context.MEDIA_SESSION_SERVICE);
-          java.util.List<android.media.session.MediaController> controllers = mediaSessionManager.getActiveSessions(new android.content.ComponentName(context, NowPlayingListenerService.class));
-          android.media.session.MediaController activeController = null;
-          for (android.media.session.MediaController c : controllers) {
-            if (c.getPlaybackState() != null && c.getPlaybackState().getState() == android.media.session.PlaybackState.STATE_PLAYING) {
-              activeController = c;
-              break;
-            }
+      try {
+        android.media.session.MediaSessionManager mediaSessionManager = (android.media.session.MediaSessionManager) context.getSystemService(Context.MEDIA_SESSION_SERVICE);
+        java.util.List<android.media.session.MediaController> controllers = mediaSessionManager.getActiveSessions(new android.content.ComponentName(context, NowPlayingListenerService.class));
+        android.media.session.MediaController activeController = null;
+        for (android.media.session.MediaController c : controllers) {
+          if (c.getPlaybackState() != null && c.getPlaybackState().getState() == android.media.session.PlaybackState.STATE_PLAYING) {
+            activeController = c;
+            break;
           }
-          if (activeController == null && !controllers.isEmpty()) {
-            activeController = controllers.get(0);
-          }
-          if (activeController != null) {
-            java.util.Map<String, Object> data = extractFieldsFor(activeController.getSessionToken(), null);
-            if (data != null) trackData = data;
-          }
-        } catch (Exception e) {}
-      }
+        }
+        if (activeController == null && !controllers.isEmpty()) {
+          activeController = controllers.get(0);
+        }
+        if (activeController != null) {
+          java.util.Map<String, Object> data = extractFieldsFor(activeController.getSessionToken(), null);
+          if (data != null) trackData = data;
+        }
+      } catch (Exception e) {}
       result.success(trackData);
     } else if (COMMAND_ENABLED.equals(call.method)) {
       final boolean isEnabled = isNotificationListenerServiceEnabled();
