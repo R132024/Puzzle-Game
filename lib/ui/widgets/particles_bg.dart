@@ -28,16 +28,30 @@ class _ParticlesBgState extends State<ParticlesBg>
       duration: const Duration(seconds: 10),
     )..repeat();
 
-    for (int i = 0; i < 50; i++) {
+    // Reduced from 50 to 20 for massive performance gain
+    for (int i = 0; i < 20; i++) {
+      final alpha = _random.nextDouble() * 0.5 + 0.1;
       _particles.add(
         _Particle(
           x: _random.nextDouble(),
           y: _random.nextDouble(),
           speed: _random.nextDouble() * 0.5 + 0.1,
           size: _random.nextDouble() * 3 + 1,
-          alpha: _random.nextDouble() * 0.5 + 0.1,
+          // Precalculate the color here to avoid doing it 60 times a second
+          cachedColor: widget.color.withValues(alpha: alpha),
         ),
       );
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ParticlesBg oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.color != widget.color) {
+      for (int i = 0; i < _particles.length; i++) {
+        final alpha = _random.nextDouble() * 0.5 + 0.1;
+        _particles[i].cachedColor = widget.color.withValues(alpha: alpha);
+      }
     }
   }
 
@@ -49,19 +63,20 @@ class _ParticlesBgState extends State<ParticlesBg>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return CustomPaint(
-          painter: _ParticlesPainter(
-            particles: _particles,
-            time: _controller.value,
-            color: widget.color,
-            speedMultiplier: widget.speedMultiplier,
-          ),
-          size: Size.infinite,
-        );
-      },
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return CustomPaint(
+            painter: _ParticlesPainter(
+              particles: _particles,
+              time: _controller.value,
+              speedMultiplier: widget.speedMultiplier,
+            ),
+            size: Size.infinite,
+          );
+        },
+      ),
     );
   }
 }
@@ -72,26 +87,24 @@ class _Particle {
     required this.y,
     required this.speed,
     required this.size,
-    required this.alpha,
+    required this.cachedColor,
   });
   final double x;
   double y;
   final double speed;
   final double size;
-  final double alpha;
+  Color cachedColor;
 }
 
 class _ParticlesPainter extends CustomPainter {
   _ParticlesPainter({
     required this.particles,
     required this.time,
-    required this.color,
     required this.speedMultiplier,
   });
 
   final List<_Particle> particles;
   final double time;
-  final Color color;
   final double speedMultiplier;
 
   @override
@@ -99,22 +112,11 @@ class _ParticlesPainter extends CustomPainter {
     final paint = Paint();
 
     for (final p in particles) {
-      // Y moves upwards based on time and speed
-      // We use time but we want continuous movement, so we just calculate position based on modulo
-      // Wait, time goes from 0 to 1 repeatedly. This might cause jumping.
-      // A better way is to update particle Y in the painter, but CustomPainters shouldn't mutate state.
-      // So we map time to distance.
-      // Distance = (time * speed * speedMultiplier) % 1.0;
-      // Actually, since speedMultiplier can change, modulo might skip.
-
-      // We can just use the animation value to smoothly shift them.
-      // 1.0 represents one full cycle.
-      // If we want continuous scrolling upwards:
       final yOffset = (time * p.speed * speedMultiplier * 10) % 1.0;
       double currentY = p.y - yOffset;
       if (currentY < 0) currentY += 1.0;
 
-      paint.color = color.withValues(alpha: p.alpha);
+      paint.color = p.cachedColor;
       canvas.drawRect(
         Rect.fromCenter(
           center: Offset(p.x * size.width, currentY * size.height),

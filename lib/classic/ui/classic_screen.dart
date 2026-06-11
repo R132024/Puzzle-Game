@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:cubix_blast/classic/logic/classic_engine.dart';
 import 'package:cubix_blast/core/high_score_store.dart';
 import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/core/audio_service.dart';
+import 'package:cubix_blast/core/music_service.dart';
 import 'dart:ui';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/classic/ui/classic_painter.dart';
@@ -35,12 +37,26 @@ class _ClassicScreenState extends State<ClassicScreen>
   double _accumulatedPanX = 0;
   bool _panVerticalTriggered = false;
 
+  bool _initializedLevel = false;
+  int _startingLevel = 1;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _engine = ClassicEngine();
     _engine.reset();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initializedLevel) {
+      _initializedLevel = true;
+      final args = ModalRoute.of(context)?.settings.arguments as Map?;
+      _startingLevel = args?['initialLevel'] as int? ?? 1;
+      _engine.reset(initialLevel: _startingLevel);
+    }
   }
 
   @override
@@ -80,7 +96,7 @@ class _ClassicScreenState extends State<ClassicScreen>
         _engine.togglePause();
       case LogicalKeyboardKey.keyR:
         if (_engine.state.status == GameStatus.gameOver) {
-          _engine.reset();
+          _engine.reset(initialLevel: _startingLevel);
         }
       default:
         break;
@@ -91,12 +107,42 @@ class _ClassicScreenState extends State<ClassicScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF060A14),
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('CLÁSICO'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            AudioService.instance.playBoton();
+            Navigator.of(context).pop();
+          },
         ),
+        actions: [
+          ValueListenableBuilder<bool>(
+            valueListenable: AudioService.instance.bgmNotifier,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                icon: Icon(isEnabled ? Icons.music_note : Icons.music_off, color: Colors.white70),
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  AudioService.instance.toggleBgm();
+                },
+              );
+            },
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: AudioService.instance.sfxNotifier,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                icon: Icon(isEnabled ? Icons.volume_up : Icons.volume_off, color: Colors.white70),
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  AudioService.instance.toggleSfx();
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: GameGestureDetector(
         onMoveLeft: _engine.moveLeft,
@@ -104,6 +150,7 @@ class _ClassicScreenState extends State<ClassicScreen>
         onHardDrop: _engine.hardDrop,
         onHoldPiece: _engine.holdPiece,
         onRotateClockwise: _engine.rotateClockwise,
+        onFastDrop: _engine.setFastDrop,
         child: KeyboardListener(
           focusNode: _focusNode,
           autofocus: true,
@@ -133,73 +180,88 @@ class _ClassicScreenState extends State<ClassicScreen>
         return Stack(
           children: [
             Positioned.fill(
-              child: AudioVisualizerBg(
-                color: currentColor,
-                tempoMultiplier: tempo,
+              child: ValueListenableBuilder<Color>(
+                valueListenable: MusicService.instance.dominantColor,
+                builder: (context, dominantColor, child) {
+                  return AudioVisualizerBg(
+                    color: dominantColor,
+                    tempoMultiplier: tempo,
+                  );
+                },
               ),
             ),
             Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      HoldPiecePreview(
-                        piece: _engine.heldPiece,
-                        canHold: _engine.canHold,
+                ValueListenableBuilder<int>(
+                  valueListenable: _frameNotifier,
+                  builder: (context, frame, _) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          HoldPiecePreview(
+                            piece: _engine.heldPiece,
+                            canHold: _engine.canHold,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ScoreBoard(
+                              state: _engine.state,
+                              highScore: _engine.highScore,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          NextPiecePreview(piece: _engine.nextPiece),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ScoreBoard(
-                          state: _engine.state,
-                          highScore: _engine.highScore,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      NextPiecePreview(piece: _engine.nextPiece),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 Expanded(
                   child: Center(
-                    child: Transform.translate(
-                      offset: Offset(
-                        _engine.shakeTimer > 0
-                            ? (sin(_engine.state.elapsedSeconds * 50) *
-                                  15 *
-                                  _engine.shakeTimer)
-                            : 0,
-                        _engine.shakeTimer > 0
-                            ? (cos(_engine.state.elapsedSeconds * 60) *
-                                  15 *
-                                  _engine.shakeTimer)
-                            : 0,
-                      ),
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _frameNotifier,
+                      builder: (context, frame, child) {
+                        return Transform.translate(
+                          offset: Offset(
+                            _engine.shakeTimer > 0
+                                ? (sin(_engine.state.elapsedSeconds * 50) *
+                                      15 *
+                                      _engine.shakeTimer)
+                                : 0,
+                            _engine.shakeTimer > 0
+                                ? (cos(_engine.state.elapsedSeconds * 60) *
+                                      15 *
+                                      _engine.shakeTimer)
+                                : 0,
+                          ),
+                          child: child,
+                        );
+                      },
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-                          child: Container(
-                            width: canvasW,
-                            height: canvasH,
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                                width: 2,
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                                  blurRadius: 30,
-                                  spreadRadius: 5,
-                                ),
-                              ],
+                        child: Container(
+                          width: canvasW,
+                          height: canvasH,
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                              width: 2,
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(2),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                                blurRadius: 30,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: RepaintBoundary(
                               child: CustomPaint(
                                 painter: ClassicPainter(
                                   engine: _engine,
@@ -216,23 +278,30 @@ class _ClassicScreenState extends State<ClassicScreen>
                 const SizedBox(height: 16),
               ],
             ),
-            if (_engine.state.status == GameStatus.gameOver)
-              GameOverModal(
-                state: _engine.state,
-                mode: 'classic',
-                onRetry: () => _engine.reset(),
-                onMenu: () => Navigator.of(context).pop(),
-                onResume: () {},
-              )
-            else if (_engine.state.status == GameStatus.paused)
-              OverlayMenu(
-                title: 'PAUSED',
-                score: _engine.state.score,
-                bestScore: _engine.highScore,
-                onResume: _engine.togglePause,
-                onRestart: () => _engine.reset(),
-                onHome: () => Navigator.of(context).pop(),
-              ),
+            ValueListenableBuilder<int>(
+              valueListenable: _frameNotifier,
+              builder: (context, frame, child) {
+                if (_engine.state.status == GameStatus.gameOver) {
+                  return GameOverModal(
+                    state: _engine.state,
+                    mode: 'classic',
+                    onRetry: () => _engine.reset(initialLevel: _startingLevel),
+                    onMenu: () => Navigator.of(context).pop(),
+                    onResume: () {},
+                  );
+                } else if (_engine.state.status == GameStatus.paused) {
+                  return OverlayMenu(
+                    title: 'PAUSED',
+                    score: _engine.state.score,
+                    bestScore: _engine.highScore,
+                    onResume: _engine.togglePause,
+                    onRestart: () => _engine.reset(initialLevel: _startingLevel),
+                    onHome: () => Navigator.of(context).pop(),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ],
         );
       },

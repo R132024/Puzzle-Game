@@ -57,6 +57,13 @@ class ArenaPainter extends CustomPainter {
   void _drawSandGrains(Canvas canvas, double grainW, double grainH) {
     final buffer = engine.sandGrid.currentBuffer;
     final cols = engine.sandGrid.cols;
+    
+    final colorList = GameThemes.getTheme(
+      ScoreManager.currentTheme,
+    ).pieceColors;
+    
+    // Massive GC optimization: Pre-allocate Paint objects outside the 60fps loop
+    final paints = colorList.map((c) => Paint()..color = c).toList();
 
     for (int i = 0; i < buffer.length; i++) {
       final grain = buffer[i];
@@ -67,15 +74,11 @@ class ArenaPainter extends CustomPainter {
       final rect = Rect.fromLTWH(
         c * grainW,
         r * grainH,
-        grainW + 0.5,
+        grainW + 0.5, // slight overlap to prevent seams
         grainH + 0.5,
       );
 
-      final colorList = GameThemes.getTheme(
-        ScoreManager.currentTheme,
-      ).pieceColors;
-      final color = colorList[grain.colorIndex % colorList.length];
-      canvas.drawRect(rect, Paint()..color = color);
+      canvas.drawRect(rect, paints[grain.colorIndex % paints.length]);
     }
   }
 
@@ -87,6 +90,8 @@ class ArenaPainter extends CustomPainter {
       ScoreManager.currentTheme,
     ).pieceColors;
     final color = colorList[piece.colorIndex % colorList.length];
+    
+    // Allocate paints once
     final paint = Paint()..color = color;
     final highlight = Paint()
       ..color = Colors.white.withValues(alpha: 0.2)
@@ -100,14 +105,9 @@ class ArenaPainter extends CustomPainter {
         cellW - 2,
         cellH - 2,
       );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(3)),
-        paint,
-      );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(3)),
-        highlight,
-      );
+      // Fast path: drawRect instead of drawRRect for active piece in Arena Mode
+      canvas.drawRect(rect, paint);
+      canvas.drawRect(rect, highlight);
     }
   }
 

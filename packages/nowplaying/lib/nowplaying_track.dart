@@ -122,15 +122,13 @@ class NowPlayingTrack {
 
     final String imageId = '${json['title']}:${json['artist']}:${json['album']}';
 
-    if (!_images.containsKey(imageId)) {
-      final Uint8List? imageData = json['image'];
-      if (imageData is Uint8List) {
-        _images[imageId] = MemoryImage(imageData);
-      } else {
-        final String? imageUri = json['imageUri'];
-        if (imageUri?.startsWith('https://') == true) {
-          _images[imageId] = NetworkImage(imageUri!);
-        }
+    final Uint8List? imageData = json['image'];
+    if (imageData is Uint8List) {
+      _images[imageId] = MemoryImage(imageData);
+    } else {
+      final String? imageUri = json['imageUri'];
+      if (imageUri?.startsWith('https://') == true) {
+        _images[imageId] = NetworkImage(imageUri!);
       }
     }
 

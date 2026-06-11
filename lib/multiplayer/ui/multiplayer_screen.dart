@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:cubix_blast/multiplayer/logic/multiplayer_engine.dart';
 import 'package:cubix_blast/multiplayer/logic/multiplayer_connection.dart';
 import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/core/audio_service.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/multiplayer/ui/multiplayer_painter.dart';
 import 'package:cubix_blast/core/game_engine.dart';
@@ -42,6 +43,9 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
       onGarbageGenerated: (lines) {
         MultiplayerConnection.instance.sendGarbage(lines);
       },
+      onGameOver: () {
+        MultiplayerConnection.instance.sendGameOver();
+      },
     );
     _engine.reset();
 
@@ -50,16 +54,16 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
     };
     MultiplayerConnection.instance.onOpponentGameOver = () {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('¡HAS GANADO! El oponente perdió.')),
-        );
+        setState(() {
+          _engine.winGame();
+        });
       }
     };
   }
 
   @override
   void dispose() {
-    if (_engine.state.status == GameStatus.gameOver) {
+    if (_engine.state.status == GameStatus.playing || _engine.state.status == GameStatus.paused) {
       MultiplayerConnection.instance.sendGameOver();
     }
     WidgetsBinding.instance.removeObserver(this);
@@ -113,8 +117,37 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
         title: const Text('BATALLA MULTIJUGADOR'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            AudioService.instance.playBoton();
+            Navigator.of(context).pop();
+          },
         ),
+        actions: [
+          ValueListenableBuilder<bool>(
+            valueListenable: AudioService.instance.bgmNotifier,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                icon: Icon(isEnabled ? Icons.music_note : Icons.music_off, color: Colors.white70),
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  AudioService.instance.toggleBgm();
+                },
+              );
+            },
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: AudioService.instance.sfxNotifier,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                icon: Icon(isEnabled ? Icons.volume_up : Icons.volume_off, color: Colors.white70),
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  AudioService.instance.toggleSfx();
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: GameGestureDetector(
         onMoveLeft: _engine.moveLeft,
@@ -122,6 +155,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
         onHardDrop: _engine.hardDrop,
         onHoldPiece: _engine.holdPiece,
         onRotateClockwise: _engine.rotateClockwise,
+        onFastDrop: _engine.setFastDrop,
         child: KeyboardListener(
           focusNode: _focusNode,
           autofocus: true,
@@ -238,7 +272,8 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
               GameOverModal(
                 state: _engine.state,
                 mode: 'multiplayer',
-                onRetry: () => _engine.reset(),
+                titleOverride: _engine.hasWon ? '¡HAS GANADO!' : '¡HAS PERDIDO!',
+                onRetry: () => Navigator.of(context).pop(), // Volver al lobby
                 onMenu: () => Navigator.of(context).pop(),
                 onResume: () {},
               )

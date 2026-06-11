@@ -9,6 +9,7 @@ class GameGestureDetector extends StatefulWidget {
     required this.onHardDrop,
     required this.onHoldPiece,
     required this.onRotateClockwise,
+    required this.onFastDrop,
   });
 
   final Widget child;
@@ -17,6 +18,7 @@ class GameGestureDetector extends StatefulWidget {
   final VoidCallback onHardDrop;
   final VoidCallback onHoldPiece;
   final VoidCallback onRotateClockwise;
+  final ValueChanged<bool> onFastDrop;
 
   @override
   State<GameGestureDetector> createState() => _GameGestureDetectorState();
@@ -66,6 +68,9 @@ class _GameGestureDetectorState extends State<GameGestureDetector> {
         }
       },
       onTap: widget.onRotateClockwise,
+      onLongPressStart: (_) => widget.onFastDrop(true),
+      onLongPressEnd: (_) => widget.onFastDrop(false),
+      onLongPressCancel: () => widget.onFastDrop(false),
       child: widget.child,
     );
   }

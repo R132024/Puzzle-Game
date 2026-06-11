@@ -15,9 +15,10 @@ import 'package:cubix_blast/core/piece_factory.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:cubix_blast/classic/logic/line_clearer.dart';
+import 'package:cubix_blast/core/audio_service.dart';
 
 class MultiplayerEngine implements GameEngine {
-  MultiplayerEngine({int? seed, this.onGarbageGenerated})
+  MultiplayerEngine({int? seed, this.onGarbageGenerated, this.onGameOver})
     : _factory = PieceFactory(seed: seed),
       _grid = Grid(gridRows, gridColumns);
 
@@ -65,8 +66,12 @@ class MultiplayerEngine implements GameEngine {
   /// Timers for cleared rows for animation (row index -> remaining seconds).
   Map<int, double> clearedRowTimers = {};
 
+  int _initialLevel = 1;
+
   final void Function(int lines)? onGarbageGenerated;
+  final void Function()? onGameOver;
   int pendingGarbage = 0;
+  bool hasWon = false;
 
   void receiveGarbage(int lines) {
     pendingGarbage += lines;
@@ -77,6 +82,7 @@ class MultiplayerEngine implements GameEngine {
   double _dropTimer = 0;
   double _lockTimer = 0;
   bool _isLocking = false;
+  bool _isFastDropping = false;
 
   double get _dropInterval =>
       max(minDropInterval, baseDropInterval - (state.level - 1) * 0.05);
@@ -84,10 +90,12 @@ class MultiplayerEngine implements GameEngine {
   // ─── Lifecycle ──────────────────────────────────────────────
 
   @override
-  void reset() {
+  void reset({int initialLevel = 1}) {
+    _initialLevel = initialLevel;
+    hasWon = false;
     _grid.clear();
     _factory.reset();
-    state = const GameState(status: GameStatus.playing);
+    state = GameState(status: GameStatus.playing, level: initialLevel);
     _dropTimer = 0;
     _lockTimer = 0;
     _isLocking = false;
@@ -105,8 +113,10 @@ class MultiplayerEngine implements GameEngine {
   @override
   void togglePause() {
     if (state.status == GameStatus.playing) {
+      AudioService.instance.playPausa();
       state = state.copyWith(status: GameStatus.paused);
     } else if (state.status == GameStatus.paused) {
+      AudioService.instance.playPausa();
       state = state.copyWith(status: GameStatus.playing);
     }
   }
@@ -169,11 +179,16 @@ class MultiplayerEngine implements GameEngine {
       }
     }
 
-    _dropTimer += dt;
+    _dropTimer += dt * (_isFastDropping ? 10.0 : 1.0);
     if (_dropTimer >= _dropInterval) {
       _dropTimer = 0;
       _tryMoveDown();
     }
+  }
+
+  @override
+  void setFastDrop(bool enabled) {
+    _isFastDropping = enabled;
   }
 
   // ─── Player Input ───────────────────────────────────────────
@@ -373,12 +388,13 @@ class MultiplayerEngine implements GameEngine {
     // Clear lines
     final result = _lineClearer.clearFullRows(_grid);
     if (result.any) {
+      AudioService.instance.playRomperFila();
       lastClearedRows = result.rowsCleared;
       for (final r in result.rowsCleared) {
         clearedRowTimers[r] = 0.4; // 400ms animation
       }
       final newLines = state.linesCleared + result.count;
-      final newLevel = (newLines ~/ linesPerLevel) + 1;
+      final newLevel = _initialLevel + (newLines ~/ linesPerLevel);
       final scoreAdd = lineScoreTable[min(result.count, 4)] * state.level;
 
       final newScore = state.score + scoreAdd;
@@ -423,8 +439,8 @@ class MultiplayerEngine implements GameEngine {
       );
 
       // Calculate garbage sent
-      if (result.count >= 2) {
-        int garbageSent = result.count - 1;
+      if (result.count >= 1) {
+        int garbageSent = result.count;
         if (result.count >= 4) garbageSent = 4; // Tetris sends 4
         onGarbageGenerated?.call(garbageSent);
       }
@@ -454,7 +470,9 @@ class MultiplayerEngine implements GameEngine {
     // Game over check
     if (_grid.collides(activePiece!)) {
       activePiece = null;
+      AudioService.instance.playPerderGanar();
       state = state.copyWith(status: GameStatus.gameOver);
+      onGameOver?.call();
     }
 
     _dropTimer = 0;
@@ -488,5 +506,11 @@ class MultiplayerEngine implements GameEngine {
     }
 
     pendingGarbage = 0;
+  }
+
+  void winGame() {
+    hasWon = true;
+    AudioService.instance.playPerderGanar();
+    state = state.copyWith(status: GameStatus.gameOver);
   }
 }

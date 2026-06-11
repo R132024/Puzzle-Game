@@ -9,14 +9,23 @@ import 'power/ui/power_screen.dart';
 import 'ui/screens/shop_screen.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/music_service.dart';
+import 'package:cubix_blast/core/audio_service.dart';
 import 'package:cubix_blast/multiplayer/ui/multiplayer_lobby_screen.dart';
 import 'package:cubix_blast/multiplayer/ui/multiplayer_screen.dart';
+
+import 'package:cubix_blast/core/player_manager.dart';
+import 'package:cubix_blast/core/mission_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   await ScoreManager.init();
+  await PlayerManager.init();
+  await MissionManager.init();
   MusicService.instance.init(); // non-blocking request
+  // AudioService initializes internally on first access
+  AudioService.instance.playBgm('audio/puzzlemenu.mp3');
 
   runApp(const ProviderScope(child: CubixBlastApp()));
 }
@@ -26,24 +35,19 @@ class CubixBlastApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Color>(
-      valueListenable: MusicService.instance.dominantColor,
-      builder: (context, dominantColor, child) {
-        return MaterialApp(
-          title: 'CubixBlast: Puzzle Game',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.darkTheme(dominantColor),
-          initialRoute: '/',
-          routes: {
-            '/': (_) => const HomeScreen(),
-            '/classic': (_) => const ClassicScreen(),
-            '/arena': (_) => const ArenaScreen(),
-            '/power': (_) => const PowerScreen(),
-            '/multiplayer_lobby': (_) => const MultiplayerLobbyScreen(),
-            '/multiplayer_match': (_) => const MultiplayerScreen(),
-            '/shop': (_) => const ShopScreen(),
-          },
-        );
+    return MaterialApp(
+      title: 'CubixBlast: Puzzle Game',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme(const Color(0xFF00E5FF)),
+      initialRoute: '/',
+      routes: {
+        '/': (_) => const HomeScreen(),
+        '/classic': (_) => const ClassicScreen(),
+        '/arena': (_) => const ArenaScreen(),
+        '/power': (_) => const PowerScreen(),
+        '/multiplayer_lobby': (_) => const MultiplayerLobbyScreen(),
+        '/multiplayer_match': (_) => const MultiplayerScreen(),
+        '/shop': (_) => const ShopScreen(),
       },
     );
   }

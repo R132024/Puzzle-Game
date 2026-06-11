@@ -21,7 +21,7 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
   @override
   void dispose() {
     _connection.removeListener(_onStateChange);
-    _connection.disconnect();
+    // DO NOT disconnect here! The game needs the connection!
     super.dispose();
   }
 
@@ -105,14 +105,37 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
                 '¡Conectado!',
                 style: TextStyle(color: Colors.white, fontSize: 24),
               ),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent,
-                  foregroundColor: Colors.black,
+              const SizedBox(height: 30),
+              if (_connection.isHost)
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40, vertical: 16),
+                  ),
+                  onPressed: _connection.startGame,
+                  child: const Text(
+                    'Iniciar Batalla',
+                    style: TextStyle(fontSize: 20),
+                  ),
+                )
+              else
+                const Text(
+                  'Esperando al anfitrión para iniciar...',
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
                 ),
-                onPressed: _connection.startGame,
-                child: const Text('¡INICIAR BATALLA!'),
+            ],
+            
+            if (_connection.status != MultiplayerStatus.disconnected) ...[
+              const SizedBox(height: 40),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.cancel),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[850],
+                  foregroundColor: Colors.white,
+                ),
+                label: const Text('Cancelar / Salir'),
+                onPressed: _connection.disconnect,
               ),
             ],
           ],

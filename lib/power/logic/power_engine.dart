@@ -15,6 +15,7 @@ import 'package:cubix_blast/core/piece_factory.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:cubix_blast/classic/logic/line_clearer.dart';
+import 'package:cubix_blast/core/audio_service.dart';
 
 class PowerEngine implements GameEngine {
   PowerEngine({int? seed})
@@ -65,40 +66,119 @@ class PowerEngine implements GameEngine {
   /// Timers for cleared rows for animation (row index -> remaining seconds).
   Map<int, double> clearedRowTimers = {};
 
+  int _initialLevel = 1;
+
   // ─── Powers ─────────────────────────────────────────────────
 
   double slowMoTimer = 0;
-  bool isBombActive = false;
 
   // Cooldowns (in seconds)
-  double slowMoCooldown = 0;
-  double bombCooldown = 0;
-  double swapCooldown = 0;
+  double slowMoCooldown = 0;   // Slow Mo: 20s
+  double laserCooldown = 0;    // Láser: 30s
+  double meteoriteCooldown = 0; // Meteorito: 40s
+
+  // Animation timers (for visual effects rendered in painter)
+  double laserFlashTimer = 0;  // >0 while laser flash visible
+  double meteoriteFlashTimer = 0; // >0 while meteorite impact visible
 
   void activateSlowMo() {
+    if (state.status != GameStatus.playing) return;
     if (slowMoCooldown > 0) return;
     slowMoTimer = 10.0; // 10 seconds of slow mo
-    slowMoCooldown = 40.0; // 40s total (30s after finishes)
-    floatingTexts.add(FloatingText('SLOW MO!', 2.0, 0xFF00E5FF));
+    slowMoCooldown = 20.0; // 20s cooldown
+    AudioService.instance.playPoderLento();
+    floatingTexts.add(FloatingText('¡CÁMARA LENTA!', 2.0, 0xFF00E5FF));
+    HapticFeedback.mediumImpact();
   }
 
-  void activateBomb() {
-    if (bombCooldown > 0) return;
-    isBombActive = true;
-    bombCooldown = 30.0;
-    floatingTexts.add(FloatingText('BOMB ARMED!', 2.0, 0xFFFF1744));
-  }
+  /// Láser: clears the bottom 2 rows and drops everything above.
+  void activateLaser() {
+    if (state.status != GameStatus.playing) return;
+    if (laserCooldown > 0) return;
 
-  void swapToI() {
-    if (activePiece == null || swapCooldown > 0) return;
-    activePiece = CubixPiece(
-      shape: CubixShape.shaftI,
-      colorIndex: 0,
-      row: activePiece!.row,
-      col: activePiece!.col,
+    // Clear the 2 bottom rows
+    final bottomRow1 = gridRows - 1;
+    final bottomRow2 = gridRows - 2;
+
+    // Clear both rows
+    _grid.clearRow(bottomRow1);
+    _grid.clearRow(bottomRow2);
+
+    // Drop rows above: shift everything down by 2
+    for (int r = gridRows - 3; r >= 0; r--) {
+      _grid.copyRow(r, r + 2);
+    }
+    // Clear the top 2 rows that were copied from
+    _grid.clearRow(0);
+    _grid.clearRow(1);
+
+    // Animation & feedback
+    laserFlashTimer = 0.5;
+    laserCooldown = 30.0;
+    shakeTimer = 0.25;
+    clearedRowTimers[bottomRow1] = 0.4;
+    clearedRowTimers[bottomRow2] = 0.4;
+    lastClearedRows = [bottomRow1, bottomRow2];
+    AudioService.instance.playLaser();
+    floatingTexts.add(FloatingText('¡LÁSER!', 2.0, 0xFFFF1744));
+
+    // Award score for the cleared rows
+    final scoreAdd = lineScoreTable[min(2, 4)] * state.level;
+    final newLines = state.linesCleared + 2;
+    final newLevel = _initialLevel + (newLines ~/ linesPerLevel);
+    state = state.copyWith(
+      score: state.score + scoreAdd,
+      linesCleared: newLines,
+      level: newLevel,
     );
-    swapCooldown = 45.0;
-    floatingTexts.add(FloatingText('SAVED!', 2.0, 0xFF00E676));
+    ScoreManager.addCoins(20);
+
+    HapticFeedback.heavyImpact();
+  }
+
+  /// Meteorito: clears the bottom 6 rows with massive impact.
+  void activateMeteorite() {
+    if (state.status != GameStatus.playing) return;
+    if (meteoriteCooldown > 0) return;
+
+    // Clear bottom 6 rows
+    const rowsToClear = 6;
+    final clearedRows = <int>[];
+    for (int r = gridRows - 1; r >= gridRows - rowsToClear && r >= 0; r--) {
+      _grid.clearRow(r);
+      clearedRows.add(r);
+      clearedRowTimers[r] = 0.6; // longer animation for impact
+    }
+
+    // Drop everything above down by 6
+    for (int r = gridRows - rowsToClear - 1; r >= 0; r--) {
+      _grid.copyRow(r, r + rowsToClear);
+    }
+    // Clear the top rows
+    for (int r = 0; r < rowsToClear && r < gridRows; r++) {
+      _grid.clearRow(r);
+    }
+
+    // Massive feedback
+    meteoriteFlashTimer = 0.7;
+    meteoriteCooldown = 40.0;
+    shakeTimer = 0.5;
+    lastClearedRows = clearedRows;
+    AudioService.instance.playMeteorito();
+    floatingTexts.add(FloatingText('¡¡METEORITO!!', 2.5, 0xFFFF6D00));
+
+    // Award score
+    final scoreAdd = lineScoreTable[4] * state.level; // Treat as tetris-level clear
+    final newLines = state.linesCleared + rowsToClear;
+    final newLevel = _initialLevel + (newLines ~/ linesPerLevel);
+    state = state.copyWith(
+      score: state.score + scoreAdd,
+      linesCleared: newLines,
+      level: newLevel,
+    );
+    ScoreManager.addCoins(60);
+
+    HapticFeedback.heavyImpact();
   }
 
   // ─── Internals ──────────────────────────────────────────────
@@ -106,11 +186,12 @@ class PowerEngine implements GameEngine {
   double _dropTimer = 0;
   double _lockTimer = 0;
   bool _isLocking = false;
+  bool _isFastDropping = false;
 
   double get _dropInterval {
     final base = max(
-      minDropInterval,
-      baseDropInterval - (state.level - 1) * 0.05,
+      0.03,
+      baseDropInterval - (state.level - 1) * 0.08,
     );
     return slowMoTimer > 0 ? base * 4.0 : base;
   }
@@ -118,10 +199,11 @@ class PowerEngine implements GameEngine {
   // ─── Lifecycle ──────────────────────────────────────────────
 
   @override
-  void reset() {
+  void reset({int initialLevel = 1}) {
+    _initialLevel = initialLevel;
     _grid.clear();
     _factory.reset();
-    state = const GameState(status: GameStatus.playing);
+    state = GameState(status: GameStatus.playing, level: initialLevel);
     _dropTimer = 0;
     _lockTimer = 0;
     _isLocking = false;
@@ -133,14 +215,23 @@ class PowerEngine implements GameEngine {
     floatingTexts.clear();
     hardDropTrails.clear();
     currentCombo = 0;
+    // Reset ALL power-up state
+    slowMoTimer = 0;
+    slowMoCooldown = 0;
+    laserCooldown = 0;
+    laserFlashTimer = 0;
+    meteoriteCooldown = 0;
+    meteoriteFlashTimer = 0;
     _spawnPiece();
   }
 
   @override
   void togglePause() {
     if (state.status == GameStatus.playing) {
+      AudioService.instance.playPausa();
       state = state.copyWith(status: GameStatus.paused);
     } else if (state.status == GameStatus.paused) {
+      AudioService.instance.playPausa();
       state = state.copyWith(status: GameStatus.playing);
     }
   }
@@ -159,13 +250,22 @@ class PowerEngine implements GameEngine {
       slowMoCooldown -= dt;
       if (slowMoCooldown < 0) slowMoCooldown = 0;
     }
-    if (bombCooldown > 0) {
-      bombCooldown -= dt;
-      if (bombCooldown < 0) bombCooldown = 0;
+    if (laserCooldown > 0) {
+      laserCooldown -= dt;
+      if (laserCooldown < 0) laserCooldown = 0;
     }
-    if (swapCooldown > 0) {
-      swapCooldown -= dt;
-      if (swapCooldown < 0) swapCooldown = 0;
+    if (meteoriteCooldown > 0) {
+      meteoriteCooldown -= dt;
+      if (meteoriteCooldown < 0) meteoriteCooldown = 0;
+    }
+    // Decrease visual flash timers
+    if (laserFlashTimer > 0) {
+      laserFlashTimer -= dt;
+      if (laserFlashTimer < 0) laserFlashTimer = 0;
+    }
+    if (meteoriteFlashTimer > 0) {
+      meteoriteFlashTimer -= dt;
+      if (meteoriteFlashTimer < 0) meteoriteFlashTimer = 0;
     }
 
     state = state.copyWith(elapsedSeconds: state.elapsedSeconds + dt);
@@ -222,11 +322,16 @@ class PowerEngine implements GameEngine {
       }
     }
 
-    _dropTimer += dt;
+    _dropTimer += dt * (_isFastDropping ? 10.0 : 1.0);
     if (_dropTimer >= _dropInterval) {
       _dropTimer = 0;
       _tryMoveDown();
     }
+  }
+
+  @override
+  void setFastDrop(bool enabled) {
+    _isFastDropping = enabled;
   }
 
   // ─── Player Input ───────────────────────────────────────────
@@ -422,40 +527,20 @@ class PowerEngine implements GameEngine {
   void _lockPiece() {
     if (activePiece == null) return;
 
-    if (isBombActive) {
-      isBombActive = false;
-      shakeTimer = 0.5;
-      HapticFeedback.heavyImpact();
-      floatingTexts.add(FloatingText('BOOM!', 1.5, 0xFFFF1744));
 
-      final centerRow = activePiece!.row + 1;
-      final centerCol = activePiece!.col + 1;
-      for (int r = centerRow - 2; r <= centerRow + 2; r++) {
-        for (int c = centerCol - 2; c <= centerCol + 2; c++) {
-          if (r >= 0 && r < gridRows && c >= 0 && c < gridColumns) {
-            _grid.setCell(r, c, null); // Clear block
-          }
-        }
-      }
-
-      activePiece = null;
-      _isLocking = false;
-      _lockTimer = 0;
-      _spawnPiece();
-      return;
-    }
 
     _grid.lockPiece(activePiece!);
 
     // Clear lines
     final result = _lineClearer.clearFullRows(_grid);
     if (result.any) {
+      AudioService.instance.playRomperFila();
       lastClearedRows = result.rowsCleared;
       for (final r in result.rowsCleared) {
         clearedRowTimers[r] = 0.4; // 400ms animation
       }
       final newLines = state.linesCleared + result.count;
-      final newLevel = (newLines ~/ linesPerLevel) + 1;
+      final newLevel = _initialLevel + (newLines ~/ linesPerLevel);
       final scoreAdd = lineScoreTable[min(result.count, 4)] * state.level;
 
       final newScore = state.score + scoreAdd;
@@ -522,6 +607,7 @@ class PowerEngine implements GameEngine {
     // Game over check
     if (_grid.collides(activePiece!)) {
       activePiece = null;
+      AudioService.instance.playPerderGanar();
       state = state.copyWith(status: GameStatus.gameOver);
     }
 

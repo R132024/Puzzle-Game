@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:nearby_connections/nearby_connections.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 enum MultiplayerStatus {
   disconnected,
@@ -21,6 +22,7 @@ class MultiplayerConnection extends ChangeNotifier {
   MultiplayerStatus status = MultiplayerStatus.disconnected;
   String? connectedEndpointId;
   String? connectedEndpointName;
+  bool isHost = false;
 
   // Discovered peers
   Map<String, String> discoveredPeers = {};
@@ -31,11 +33,23 @@ class MultiplayerConnection extends ChangeNotifier {
   void Function()? onGameStart;
 
   Future<void> requestPermissions() async {
-    // If permission handler is added later, handle it here.
-    // The plugin usually requests them automatically on startDiscovery/Advertising.
+    try {
+      await [
+        Permission.location,
+        Permission.bluetooth,
+        Permission.bluetoothAdvertise,
+        Permission.bluetoothConnect,
+        Permission.bluetoothScan,
+        Permission.nearbyWifiDevices,
+      ].request();
+    } catch (e) {
+      debugPrint("Permission request error: $e");
+    }
   }
 
   Future<void> startAdvertising() async {
+    await requestPermissions();
+    isHost = true;
     status = MultiplayerStatus.advertising;
     notifyListeners();
     try {
@@ -54,6 +68,8 @@ class MultiplayerConnection extends ChangeNotifier {
   }
 
   Future<void> startDiscovery() async {
+    await requestPermissions();
+    isHost = false;
     discoveredPeers.clear();
     status = MultiplayerStatus.discovering;
     notifyListeners();
@@ -137,6 +153,7 @@ class MultiplayerConnection extends ChangeNotifier {
   }
 
   void sendGameOver() {
+    debugPrint("MULTIPLAYER: Enviando GAMEOVER");
     _sendMessage('GAMEOVER');
   }
 
@@ -150,6 +167,7 @@ class MultiplayerConnection extends ChangeNotifier {
   }
 
   void _handleMessage(String msg) {
+    debugPrint("MULTIPLAYER: Recibido mensaje: $msg");
     if (msg == 'START') {
       status = MultiplayerStatus.playing;
       notifyListeners();
@@ -158,6 +176,7 @@ class MultiplayerConnection extends ChangeNotifier {
       final lines = int.tryParse(msg.split(':')[1]) ?? 0;
       onGarbageReceived?.call(lines);
     } else if (msg == 'GAMEOVER') {
+      debugPrint("MULTIPLAYER: Procesando GAMEOVER del oponente");
       onOpponentGameOver?.call();
     }
   }

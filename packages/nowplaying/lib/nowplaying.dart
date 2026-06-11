@@ -145,6 +145,12 @@ class NowPlaying with WidgetsBindingObserver {
     if (call.method == 'track') {
       final data = Map<String, Object?>.from(call.arguments[0] ?? {});
       _androidTrack = NowPlayingTrack.fromJson(data);
+      
+      // Directly notify with the pushed track (which contains the image bytes!) 
+      // instead of calling _refresh() which does a redundant fetch without image.
+      if (_shouldNotifyFor(_androidTrack)) {
+        _updateAndNotifyFor(_androidTrack);
+      }
     }
     return true;
   }
@@ -208,7 +214,7 @@ class NowPlaying with WidgetsBindingObserver {
   /// Restart timer if resumed; else cancel it
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (isIOS) _refreshTimer ??= Timer.periodic(_refreshPeriod, _refresh);
+      _refreshTimer ??= Timer.periodic(_refreshPeriod, _refresh);
       _refresh();
     } else {
       _refreshTimer?.cancel();

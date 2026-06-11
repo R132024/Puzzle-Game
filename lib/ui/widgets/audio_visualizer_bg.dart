@@ -42,65 +42,64 @@ class _AudioVisualizerBgState extends State<AudioVisualizerBg>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return ValueListenableBuilder<NowPlayingTrack?>(
-          valueListenable: MusicService.instance.currentTrack,
-          builder: (context, track, _) {
-            // Ask package to resolve the image if it's missing (usually happens async)
-            if (track != null &&
-                !track.hasImage &&
-                track.imageNeedsResolving &&
-                !track.isResolvingImage) {
-              track.resolveImage().then((_) {
-                if (mounted) setState(() {});
-              });
-            }
+    return ValueListenableBuilder<NowPlayingTrack?>(
+      valueListenable: MusicService.instance.currentTrack,
+      builder: (context, track, _) {
+        // Ask package to resolve the image if it's missing (usually happens async)
+        if (track != null &&
+            !track.hasImage &&
+            track.imageNeedsResolving &&
+            !track.isResolvingImage) {
+          track.resolveImage().then((_) {
+            if (mounted) setState(() {});
+          });
+        }
 
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                if (track != null && track.hasImage) ...[
-                  Positioned.fill(
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Image(
-                        image: track.image!,
-                        fit: BoxFit.cover,
-                        color: Colors.black.withValues(alpha: 0.8),
-                        colorBlendMode: BlendMode.darken,
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: 0.4,
-                      child: Image(
-                        image: track.image!,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                ],
-                ParticlesBg(
-                  color: widget.color,
-                  speedMultiplier: widget.tempoMultiplier,
-                ),
-                CustomPaint(
-                  painter: _VisualizerPainter(
-                    time:
-                        _controller.value *
-                        2 *
-                        pi *
-                        10 *
-                        widget.tempoMultiplier,
-                    baseColor: widget.color,
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            if (track != null && track.hasImage) ...[
+              Positioned.fill(
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Image(
+                    key: ValueKey(track.title),
+                    image: ResizeImage(track.image!, width: 100), // Scale down before heavy blur
+                    fit: BoxFit.cover,
+                    color: Colors.black.withValues(alpha: 0.8),
+                    colorBlendMode: BlendMode.darken,
                   ),
                 ),
-              ],
-            );
-          },
+              ),
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Image(
+                    key: ValueKey('${track.title}_fg'),
+                    image: track.image!,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ],
+            ParticlesBg(
+              color: widget.color,
+              speedMultiplier: widget.tempoMultiplier,
+            ),
+            RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: _VisualizerPainter(
+                      time: _controller.value * 2 * pi * 10 * widget.tempoMultiplier,
+                      baseColor: widget.color,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -113,47 +112,42 @@ class _VisualizerPainter extends CustomPainter {
   final double time;
   final Color baseColor;
 
-  static const int barCount = 32;
+  // Reduced from 32 to 16 bars to vastly improve entry-level device performance
+  static const int barCount = 16;
 
   @override
   void paint(Canvas canvas, Size size) {
     final barWidth = size.width / barCount;
-    final maxBarHeight =
-        size.height * 0.4; // Max height is 40% of screen height
+    final maxBarHeight = size.height * 0.4;
 
+    // Cache the color once instead of recreating it or doing .withValues
     final paint = Paint()
       ..color = baseColor.withValues(alpha: 0.15)
       ..style = PaintingStyle.fill;
 
-    // We generate pseudo-random heights using sine waves
     for (int i = 0; i < barCount; i++) {
-      // Create a complex wave for each bar using its index and time
-      final wave1 = sin(time * 0.5 + i * 0.2);
-      final wave2 = sin(time * 0.8 - i * 0.5);
-      final wave3 = cos(time * 1.2 + i * 0.1);
+      // Simplier sine wave math (reduced from 3 trig calls to 2)
+      final wave1 = sin(time * 0.5 + i * 0.4);
+      final wave2 = cos(time * 0.8 - i * 0.2);
 
-      // Combine waves and map to [0, 1] range roughly
-      double heightFactor = (wave1 + wave2 + wave3) / 3.0;
+      double heightFactor = (wave1 + wave2) * 0.5;
       heightFactor = (heightFactor.abs() * 1.2).clamp(0.05, 1.0);
 
-      // Random jitter
+      // Fast random jitter
       final jitter = (sin(time * 5 + i * 13) * 0.1).abs();
       heightFactor = (heightFactor + jitter).clamp(0.05, 1.0);
 
       final currentHeight = maxBarHeight * heightFactor;
 
-      // Draw bars emerging from the bottom
       final rect = Rect.fromLTWH(
         i * barWidth,
         size.height - currentHeight,
-        barWidth - 2, // 2px gap between bars
+        barWidth - 2,
         currentHeight,
       );
 
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(4)),
-        paint,
-      );
+      // Massive optimization: Using drawRect instead of drawRRect (no radius calculations for GPU)
+      canvas.drawRect(rect, paint);
     }
   }
 

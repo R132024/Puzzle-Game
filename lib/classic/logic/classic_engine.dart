@@ -13,6 +13,7 @@ import 'package:cubix_blast/core/grid.dart';
 import 'package:cubix_blast/core/piece.dart';
 import 'package:cubix_blast/core/piece_factory.dart';
 import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/core/audio_service.dart';
 import 'package:flutter/services.dart';
 import 'line_clearer.dart';
 
@@ -65,22 +66,26 @@ class ClassicEngine implements GameEngine {
   /// Timers for cleared rows for animation (row index -> remaining seconds).
   Map<int, double> clearedRowTimers = {};
 
+  int _initialLevel = 1;
+
   // ─── Internals ──────────────────────────────────────────────
 
   double _dropTimer = 0;
   double _lockTimer = 0;
   bool _isLocking = false;
+  bool _isFastDropping = false;
 
   double get _dropInterval =>
-      max(minDropInterval, baseDropInterval - (state.level - 1) * 0.05);
+      max(0.03, baseDropInterval - (state.level - 1) * 0.08);
 
   // ─── Lifecycle ──────────────────────────────────────────────
 
   @override
-  void reset() {
+  void reset({int initialLevel = 1}) {
+    _initialLevel = initialLevel;
     _grid.clear();
     _factory.reset();
-    state = const GameState(status: GameStatus.playing);
+    state = GameState(status: GameStatus.playing, level: initialLevel);
     _dropTimer = 0;
     _lockTimer = 0;
     _isLocking = false;
@@ -98,8 +103,10 @@ class ClassicEngine implements GameEngine {
   @override
   void togglePause() {
     if (state.status == GameStatus.playing) {
+      AudioService.instance.playPausa();
       state = state.copyWith(status: GameStatus.paused);
     } else if (state.status == GameStatus.paused) {
+      AudioService.instance.playPausa();
       state = state.copyWith(status: GameStatus.playing);
     }
   }
@@ -162,11 +169,16 @@ class ClassicEngine implements GameEngine {
       }
     }
 
-    _dropTimer += dt;
+    _dropTimer += dt * (_isFastDropping ? 10.0 : 1.0);
     if (_dropTimer >= _dropInterval) {
       _dropTimer = 0;
       _tryMoveDown();
     }
+  }
+
+  @override
+  void setFastDrop(bool enabled) {
+    _isFastDropping = enabled;
   }
 
   // ─── Player Input ───────────────────────────────────────────
@@ -366,12 +378,13 @@ class ClassicEngine implements GameEngine {
     // Clear lines
     final result = _lineClearer.clearFullRows(_grid);
     if (result.any) {
+      AudioService.instance.playRomperFila();
       lastClearedRows = result.rowsCleared;
       for (final r in result.rowsCleared) {
         clearedRowTimers[r] = 0.4; // 400ms animation
       }
       final newLines = state.linesCleared + result.count;
-      final newLevel = (newLines ~/ linesPerLevel) + 1;
+      final newLevel = _initialLevel + (newLines ~/ linesPerLevel);
       final scoreAdd = lineScoreTable[min(result.count, 4)] * state.level;
 
       final newScore = state.score + scoreAdd;
@@ -438,6 +451,7 @@ class ClassicEngine implements GameEngine {
     // Game over check
     if (_grid.collides(activePiece!)) {
       activePiece = null;
+      AudioService.instance.playPerderGanar();
       state = state.copyWith(status: GameStatus.gameOver);
     }
 

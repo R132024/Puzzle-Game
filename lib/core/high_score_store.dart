@@ -46,9 +46,9 @@ class HighScoreStore {
     // Sort descending by score
     list.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
 
-    // Keep top 20
-    if (list.length > 20) {
-      list = list.sublist(0, 20);
+    // Keep top 5
+    if (list.length > 5) {
+      list = list.sublist(0, 5);
     }
 
     await prefs.setString(_keyAllScores, jsonEncode(list));
@@ -83,8 +83,8 @@ class HighScoreStore {
     }
 
     list.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
-    if (list.length > 20) {
-      list = list.sublist(0, 20);
+    if (list.length > 5) {
+      list = list.sublist(0, 5);
     }
     return list.cast<Map<String, dynamic>>();
   }

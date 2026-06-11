@@ -14,6 +14,7 @@ import 'package:cubix_blast/core/grid.dart';
 import 'package:cubix_blast/core/piece.dart';
 import 'package:cubix_blast/core/piece_factory.dart';
 import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/core/audio_service.dart';
 import 'package:flutter/services.dart';
 import 'sand_grid.dart';
 import 'sand_simulator.dart';
@@ -80,11 +81,14 @@ class ArenaEngine implements GameEngine {
   /// Active bridge animations.
   List<ClearedBridgeAnimation> bridgeAnimations = [];
 
+  int _initialLevel = 1;
+
   // ─── Internals ──────────────────────────────────────────────
 
   double _dropTimer = 0;
   double _lockTimer = 0;
   bool _isLocking = false;
+  bool _isFastDropping = false;
   double _sandTimer = 0;
   double _bridgeCheckTimer = 0;
 
@@ -92,16 +96,17 @@ class ArenaEngine implements GameEngine {
   static const double _sandStepInterval = 1.0 / 120.0; // 120 Hz
 
   double get _dropInterval =>
-      max(minDropInterval, baseDropInterval - (state.level - 1) * 0.05);
+      max(0.03, baseDropInterval - (state.level - 1) * 0.08);
 
   // ─── Lifecycle ──────────────────────────────────────────────
 
   @override
-  void reset() {
+  void reset({int initialLevel = 1}) {
+    _initialLevel = initialLevel;
     _pieceGrid.clear();
     sandGrid.clear();
     _factory.reset();
-    state = const GameState(status: GameStatus.playing);
+    state = GameState(status: GameStatus.playing, level: initialLevel);
     _dropTimer = 0;
     _lockTimer = 0;
     _isLocking = false;
@@ -120,8 +125,10 @@ class ArenaEngine implements GameEngine {
   @override
   void togglePause() {
     if (state.status == GameStatus.playing) {
+      AudioService.instance.playPausa();
       state = state.copyWith(status: GameStatus.paused);
     } else if (state.status == GameStatus.paused) {
+      AudioService.instance.playPausa();
       state = state.copyWith(status: GameStatus.playing);
     }
   }
@@ -186,11 +193,16 @@ class ArenaEngine implements GameEngine {
       }
     }
 
-    _dropTimer += dt;
+    _dropTimer += dt * (_isFastDropping ? 10.0 : 1.0);
     if (_dropTimer >= _dropInterval) {
       _dropTimer = 0;
       _tryMoveDown();
     }
+  }
+
+  @override
+  void setFastDrop(bool enabled) {
+    _isFastDropping = enabled;
   }
 
   void _tryMoveDown() {
@@ -262,6 +274,7 @@ class ArenaEngine implements GameEngine {
     if (!sandGrid.hasActivity || _bridgeCheckTimer >= 0.25) {
       final bridge = _bridgeDetector.detect(sandGrid);
       if (bridge.found) {
+        AudioService.instance.playRomperFila();
         _bridgeCheckTimer = 0;
         bridgeAnimations.add(
           ClearedBridgeAnimation(
@@ -293,7 +306,7 @@ class ArenaEngine implements GameEngine {
         }
 
         final newLines = state.linesCleared + 1;
-        final newLevel = (newLines ~/ linesPerLevel) + 1;
+        final newLevel = _initialLevel + (newLines ~/ linesPerLevel);
 
         final newScore = state.score + 100 * state.level;
         if (newScore > ScoreManager.arenaHighScore) {
@@ -472,6 +485,7 @@ class ArenaEngine implements GameEngine {
 
     if (_collidesWithAll(activePiece!)) {
       activePiece = null;
+      AudioService.instance.playPerderGanar();
       state = state.copyWith(status: GameStatus.gameOver);
     }
 

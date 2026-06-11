@@ -1,7 +1,12 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cubix_blast/core/high_score_store.dart';
 import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/core/audio_service.dart';
+import 'package:cubix_blast/core/player_manager.dart';
+import 'package:cubix_blast/core/mission_manager.dart';
+import 'package:cubix_blast/ui/widgets/radial_menu.dart';
 
 /// Home screen with animated mode selection menu and high scores.
 class HomeScreen extends StatefulWidget {
@@ -18,6 +23,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _fadeAnim;
 
   bool _showModes = false;
+  int _startingLevel = 1;
+  int _selectedModeIndex = 0;
   List<Map<String, dynamic>> _leaderboard = [];
 
   @override
@@ -63,7 +70,75 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        title: ValueListenableBuilder<PlayerProfile>(
+          valueListenable: PlayerManager.profileNotifier,
+          builder: (context, profile, child) {
+            return Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0F172A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${profile.level}',
+                    style: GoogleFonts.orbitron(
+                      color: const Color(0xFF00E5FF),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NIVEL ${profile.level}',
+                        style: GoogleFonts.orbitron(fontSize: 10, color: Colors.white70),
+                      ),
+                      const SizedBox(height: 4),
+                      LinearProgressIndicator(
+                        value: profile.progress,
+                        backgroundColor: Colors.white12,
+                        color: const Color(0xFF00E5FF),
+                        minHeight: 4,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+              ],
+            );
+          },
+        ),
         actions: [
+          ValueListenableBuilder<bool>(
+            valueListenable: AudioService.instance.bgmNotifier,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                icon: Icon(isEnabled ? Icons.music_note : Icons.music_off, color: Colors.white70),
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  AudioService.instance.toggleBgm();
+                },
+              );
+            },
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: AudioService.instance.sfxNotifier,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                icon: Icon(isEnabled ? Icons.volume_up : Icons.volume_off, color: Colors.white70),
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  AudioService.instance.toggleSfx();
+                },
+              );
+            },
+          ),
           ValueListenableBuilder<int>(
             valueListenable: ScoreManager.coinsNotifier,
             builder: (context, coins, child) {
@@ -137,11 +212,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             color: Colors.white.withValues(alpha: 0.5),
           ),
         ),
-        const SizedBox(height: 60),
+        const SizedBox(height: 40),
+        _buildMissionsPanel(),
+        const SizedBox(height: 40),
         _buildLeaderboardTable(),
-        const SizedBox(height: 60),
+        const SizedBox(height: 40),
         ElevatedButton(
           onPressed: () {
+            AudioService.instance.playBoton();
             setState(() {
               _showModes = true;
             });
@@ -168,6 +246,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () {
+            AudioService.instance.playBoton();
             Navigator.pushNamed(context, '/shop').then((_) => _loadRecords());
           },
           style: ElevatedButton.styleFrom(
@@ -212,6 +291,85 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       default:
         return mode;
     }
+  }
+
+  Widget _buildMissionsPanel() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF1E293B), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.star, color: Colors.amber, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'MISIONES DIARIAS',
+                style: GoogleFonts.orbitron(
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ValueListenableBuilder<List<DailyMission>>(
+            valueListenable: MissionManager.missionsNotifier,
+            builder: (context, missions, child) {
+              if (missions.isEmpty) return const SizedBox.shrink();
+              return Column(
+                children: missions.map((mission) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                mission.title,
+                                style: TextStyle(
+                                  color: mission.isCompleted ? Colors.white54 : Colors.white,
+                                  decoration: mission.isCompleted ? TextDecoration.lineThrough : null,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${mission.current} / ${mission.target}',
+                              style: TextStyle(
+                                color: mission.isCompleted ? const Color(0xFF00E676) : const Color(0xFF00E5FF),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: mission.progress,
+                          backgroundColor: Colors.white12,
+                          color: mission.isCompleted ? const Color(0xFF00E676) : const Color(0xFF00E5FF),
+                          minHeight: 6,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildLeaderboardTable() {
@@ -339,76 +497,247 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildModeSelection() {
-    return Column(
-      key: const ValueKey('modes'),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          'SELECCIONA UN MODO',
-          style: GoogleFonts.orbitron(
-            fontSize: 18,
-            letterSpacing: 4,
-            color: Colors.white,
+    return SizedBox(
+      height: 500, // Altura fija para el área de selección
+      child: Row(
+        children: [
+          // Mitad Izquierda: Menú Radial
+          Expanded(
+            flex: 4,
+            child: Transform.translate(
+              offset: const Offset(-32, 0), // Pegado al borde
+              child: RadialModeMenu(
+                selectedIndex: _selectedModeIndex,
+                onSelected: (index) {
+                  AudioService.instance.playBoton();
+                  setState(() => _selectedModeIndex = index);
+                },
+                items: [
+                  RadialMenuItem(
+                    title: 'CLÁSICO',
+                    icon: Icons.grid_on,
+                    baseColor: const Color(0xFF00E5FF),
+                    highlightColor: const Color(0xFF00B8D4),
+                  ),
+                  RadialMenuItem(
+                    title: 'ARENA',
+                    icon: Icons.timer,
+                    baseColor: const Color(0xFFFF3D00),
+                    highlightColor: const Color(0xFFDD2C00),
+                  ),
+                  RadialMenuItem(
+                    title: 'PODERES',
+                    icon: Icons.bolt,
+                    baseColor: const Color(0xFFFFD600),
+                    highlightColor: const Color(0xFFFFAB00),
+                  ),
+                  RadialMenuItem(
+                    title: 'MULTI',
+                    icon: Icons.wifi_tethering,
+                    baseColor: const Color(0xFFD500F9),
+                    highlightColor: const Color(0xFFAA00FF),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 40),
-        _buildModeCard(
-          title: 'CLÁSICO',
-          subtitle:
-              'Bloques que caen en rejilla 10×20.\nCompleta líneas para limpiar.',
-          icon: Icons.grid_on,
-          gradientColors: [const Color(0xFF00E5FF), const Color(0xFF2979FF)],
-          onTap: () => Navigator.pushNamed(
-            context,
-            '/classic',
-          ).then((_) => _loadRecords()),
-        ),
-        const SizedBox(height: 20),
-        _buildModeCard(
-          title: 'ARENA',
-          subtitle:
-              'Los bloques se desintegran en arena.\nConecta colores de pared a pared.',
-          icon: Icons.grain,
-          gradientColors: [const Color(0xFFAA00FF), const Color(0xFFFF1744)],
-          onTap: () => Navigator.pushNamed(
-            context,
-            '/arena',
-          ).then((_) => _loadRecords()),
-        ),
-        const SizedBox(height: 20),
-        _buildModeCard(
-          title: 'PODERES',
-          subtitle:
-              'Gasta monedas para usar poderes.\nBomba, cámara lenta y salvavidas.',
-          icon: Icons.bolt,
-          gradientColors: [const Color(0xFF00E676), const Color(0xFFFFD600)],
-          onTap: () => Navigator.pushNamed(
-            context,
-            '/power',
-          ).then((_) => _loadRecords()),
-        ),
-        const SizedBox(height: 20),
-        _buildModeCard(
-          title: 'MULTIJUGADOR',
-          subtitle:
-              'Conecta por Bluetooth o WiFi local.\n¡Envíale basura a tus amigos!',
-          icon: Icons.wifi_tethering,
-          gradientColors: [const Color(0xFF8E24AA), const Color(0xFFE040FB)],
-          onTap: () => Navigator.pushNamed(context, '/multiplayer_lobby'),
-        ),
-        const SizedBox(height: 40),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              _showModes = false;
-            });
-          },
-          child: const Text(
-            'VOLVER AL INICIO',
-            style: TextStyle(color: Colors.white54),
+          
+          // Mitad Derecha: Panel de Detalles
+          Expanded(
+            flex: 5,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: _buildRightPanel(),
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRightPanel() {
+    // Definimos información estática para cada modo
+    final modesInfo = [
+      {
+        'title': 'MODO CLÁSICO',
+        'desc': 'El rompecabezas original. Limpia líneas sin presión de tiempo.',
+        'color': const Color(0xFF00E5FF),
+        'route': '/classic',
+      },
+      {
+        'title': 'MODO ARENA',
+        'desc': '¡Compite contra el reloj! Gana puntos extra por combos rápidos.',
+        'color': const Color(0xFFFF3D00),
+        'route': '/arena',
+      },
+      {
+        'title': 'CON PODERES',
+        'desc': 'Usa habilidades especiales como Láser y Bomba para destruir bloques.',
+        'color': const Color(0xFFFFD600),
+        'route': '/power',
+      },
+      {
+        'title': 'MULTIJUGADOR',
+        'desc': 'Desafía a tus amigos en partidas locales y demuestra quién manda.',
+        'color': const Color(0xFFD500F9),
+        'route': '/multiplayer_lobby',
+      },
+    ];
+
+    final info = modesInfo[_selectedModeIndex];
+    final color = info['color'] as Color;
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        key: ValueKey(_selectedModeIndex),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A).withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.15),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
         ),
-      ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              info['title'] as String,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.orbitron(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+                letterSpacing: 2,
+                shadows: [Shadow(color: color, blurRadius: 10)],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              info['desc'] as String,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.orbitron(
+                fontSize: 12,
+                color: Colors.white70,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            
+            // Selector de Nivel
+            if (_selectedModeIndex != 3) ...[
+              Text(
+                'NIVEL INICIAL',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.orbitron(
+                  fontSize: 12,
+                  color: Colors.white54,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline, color: Colors.white),
+                    onPressed: () {
+                      if (_startingLevel > 1) {
+                        AudioService.instance.playBoton();
+                        setState(() => _startingLevel--);
+                      }
+                    },
+                  ),
+                  Container(
+                    width: 60,
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$_startingLevel',
+                      style: GoogleFonts.orbitron(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                    onPressed: () {
+                      if (_startingLevel < 15) {
+                        AudioService.instance.playBoton();
+                        setState(() => _startingLevel++);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ] else ...[
+               const SizedBox(height: 60), // Espacio para igualar la altura si no hay nivel
+            ],
+            
+            const Spacer(),
+            
+            // Botón Jugar
+            ElevatedButton(
+              onPressed: () {
+                AudioService.instance.playBoton();
+                if (_selectedModeIndex == 3) {
+                  Navigator.pushNamed(context, info['route'] as String);
+                } else {
+                  Navigator.pushNamed(context, info['route'] as String, arguments: {'initialLevel': _startingLevel}).then((_) => _loadRecords());
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 8,
+                shadowColor: color.withValues(alpha: 0.5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.play_arrow, size: 28),
+                  const SizedBox(width: 8),
+                  Text(
+                    'JUGAR',
+                    style: GoogleFonts.orbitron(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            // Botón Volver
+            TextButton(
+              onPressed: () {
+                AudioService.instance.playBoton();
+                setState(() => _showModes = false);
+              },
+              child: Text(
+                'VOLVER AL INICIO',
+                style: GoogleFonts.orbitron(
+                  color: Colors.white54,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -416,116 +745,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return AnimatedBuilder(
       animation: _pulseAnim,
       builder: (context, child) {
-        return ShaderMask(
-          shaderCallback: (bounds) => LinearGradient(
-            colors: [
-              const Color(0xFF00E5FF),
-              Color.lerp(
-                const Color(0xFFAA00FF),
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          child: ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
                 const Color(0xFF00E5FF),
-                _pulseAnim.value,
-              )!,
-              const Color(0xFFFF1744),
-            ],
-          ).createShader(bounds),
-          child: Text(
-            'CUBIXBLAST',
-            style: GoogleFonts.orbitron(
-              fontSize: 40,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 4,
+                Color.lerp(
+                  const Color(0xFFAA00FF),
+                  const Color(0xFF00E5FF),
+                  _pulseAnim.value,
+                )!,
+                const Color(0xFFFF1744),
+              ],
+            ).createShader(bounds),
+            child: Text(
+              'CUBIXBLAST',
+              maxLines: 1,
+              style: GoogleFonts.orbitron(
+                fontSize: 40,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 4,
+              ),
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildModeCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required List<Color> gradientColors,
-    required VoidCallback onTap,
-  }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedBuilder(
-          animation: _pulseAnim,
-          builder: (context, child) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: gradientColors.first.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: gradientColors.first.withValues(
-                      alpha: 0.1 * _pulseAnim.value,
-                    ),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: gradientColors,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 32),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: GoogleFonts.orbitron(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.6),
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Colors.white.withValues(alpha: 0.3),
-                    size: 32,
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
     );
   }
 }

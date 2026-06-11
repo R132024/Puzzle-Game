@@ -23,34 +23,33 @@ class BlockPainterUtils {
         ..style = PaintingStyle.fill;
       canvas.drawRRect(rrect, fillPaint);
     } else {
-      // 1. Base glassy fill with neon gradient
+      // 1. Base glassy fill (fast flat color)
       final fillPaint = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color, color.withValues(alpha: 0.5)],
-        ).createShader(rect)
+        ..color = color.withValues(alpha: 0.8)
         ..style = PaintingStyle.fill;
-
       canvas.drawRRect(rrect, fillPaint);
 
-      // 2. Bevel / Inner glass reflection (Top-Left bright, Bottom-Right dark)
+      // 2. Simple inner highlight (fast flat stroke) instead of complex 4-stop gradient
       final highlightPaint = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withValues(alpha: 0.6),
-            Colors.white.withValues(alpha: 0.0),
-            Colors.black.withValues(alpha: 0.2),
-            Colors.black.withValues(alpha: 0.5),
-          ],
-          stops: const [0.0, 0.4, 0.6, 1.0],
-        ).createShader(rect)
+        ..color = Colors.white.withValues(alpha: 0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5;
-
       canvas.drawRRect(rrect, highlightPaint);
+      
+      // 3. Simple inner shadow
+      final shadowPaint = Paint()
+        ..color = Colors.black.withValues(alpha: 0.3)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      
+      // Draw shadow slightly offset
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          rect.translate(1, 1),
+          const Radius.circular(4),
+        ),
+        shadowPaint,
+      );
     }
   }
 }

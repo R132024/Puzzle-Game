@@ -57,9 +57,6 @@ class _GameLoopWidgetState extends State<GameLoopWidget>
 
     // Trigger repaint
     widget.frameNotifier.value++;
-
-    // Sync widget state for non-painter children (score, etc.)
-    if (mounted) setState(() {});
   }
 
   @override

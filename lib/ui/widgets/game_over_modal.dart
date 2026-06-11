@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cubix_blast/core/game_engine.dart';
 import 'package:cubix_blast/core/high_score_store.dart';
+import 'package:cubix_blast/core/player_manager.dart';
+import 'package:cubix_blast/core/mission_manager.dart';
+import 'package:cubix_blast/core/score_manager.dart';
 
 class GameOverModal extends StatefulWidget {
   const GameOverModal({
@@ -11,6 +14,7 @@ class GameOverModal extends StatefulWidget {
     required this.onRetry,
     required this.onMenu,
     required this.onResume,
+    this.titleOverride,
   });
 
   final GameState state;
@@ -18,6 +22,7 @@ class GameOverModal extends StatefulWidget {
   final VoidCallback onRetry;
   final VoidCallback onMenu;
   final VoidCallback onResume;
+  final String? titleOverride;
 
   @override
   State<GameOverModal> createState() => _GameOverModalState();
@@ -44,6 +49,54 @@ class _GameOverModalState extends State<GameOverModal> {
         _previousRecord = record;
       });
     }
+
+    if (widget.state.score > 0) {
+      // Guardado automático del récord
+      if (record.score == 0 || widget.state.score > record.score) {
+        await HighScoreStore.saveHighScore(
+          widget.mode,
+          widget.state.score,
+          widget.state.level,
+          'YOU ',
+        );
+        if (mounted) {
+          setState(() {
+            _saved = true;
+          });
+        }
+      }
+
+      // Progresar Misiones y XP
+      final completed = await MissionManager.reportProgress(MissionType.scorePoints, widget.state.score);
+      completed.addAll(await MissionManager.reportProgress(MissionType.clearLines, widget.state.linesCleared));
+      
+      if (widget.mode == 'arena') {
+        completed.addAll(await MissionManager.reportProgress(MissionType.playArena, 1));
+      }
+
+      int xpGained = widget.state.score ~/ 10;
+      for (var m in completed) {
+        xpGained += m.xpReward;
+        ScoreManager.addCoins(m.coinsReward);
+      }
+
+      final leveledUp = await PlayerManager.addXp(xpGained);
+
+      if (mounted && (completed.isNotEmpty || leveledUp)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF0F172A),
+            content: Text(
+              leveledUp
+                  ? '¡Subiste al nivel ${PlayerManager.profileNotifier.value.level}! (+$xpGained XP)'
+                  : 'Ganaste +$xpGained XP. ${completed.isNotEmpty ? "¡Completaste ${completed.length} misión(es)!" : ""}',
+              style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -59,35 +112,18 @@ class _GameOverModalState extends State<GameOverModal> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  Future<void> _saveScore() async {
-    final name = _nameController.text.trim().toUpperCase();
-    if (name.length == 4) {
-      await HighScoreStore.saveHighScore(
-        widget.mode,
-        widget.state.score,
-        widget.state.level,
-        name,
-      );
-      if (mounted) {
-        setState(() {
-          _saved = true;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isGameOver = widget.state.status == GameStatus.gameOver;
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutBack,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value.clamp(0.0, 1.0),
-          child: Positioned.fill(
+    return Positioned.fill(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutBack,
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: value.clamp(0.0, 1.0),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10 * value, sigmaY: 10 * value),
               child: Container(
@@ -121,7 +157,7 @@ class _GameOverModalState extends State<GameOverModal> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            isGameOver ? 'GAME OVER' : 'PAUSED',
+                            isGameOver ? (widget.titleOverride ?? 'GAME OVER') : 'PAUSED',
                             style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -161,72 +197,14 @@ class _GameOverModalState extends State<GameOverModal> {
                                   ),
                                 ),
                               ),
-                            if (!_saved &&
-                                (_previousRecord == null ||
-                                    widget.state.score >
-                                        _previousRecord!.score)) ...[
-                              TextField(
-                                controller: _nameController,
-                                maxLength: 4,
-                                textCapitalization:
-                                    TextCapitalization.characters,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 4,
-                                  color: Colors.white,
-                                ),
-                                decoration: const InputDecoration(
-                                  hintText: 'ABCD',
-                                  counterText: '',
-                                  filled: true,
-                                  fillColor: Color(0xFF1E293B),
-                                  border: OutlineInputBorder(),
-                                ),
-                                onChanged: (val) {
-                                  // Force uppercase and A-Z only
-                                  final filtered = val.toUpperCase().replaceAll(
-                                    RegExp(r'[^A-Z]'),
-                                    '',
-                                  );
-                                  if (filtered != val) {
-                                    _nameController.text = filtered;
-                                    _nameController.selection =
-                                        TextSelection.fromPosition(
-                                          TextPosition(offset: filtered.length),
-                                        );
-                                  }
-                                  setState(() {});
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: _nameController.text.length == 4
-                                    ? _saveScore
-                                    : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF00E5FF),
-                                  foregroundColor: Colors.black,
-                                  minimumSize: const Size(double.infinity, 48),
-                                ),
-                                child: const Text(
-                                  'Guardar',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                            ] else if (_saved) ...[
+                            if (_saved)
                               const Text(
-                                '¡Guardado!',
+                                'Puntuación guardada',
                                 style: TextStyle(
                                   color: Color(0xFF00E676),
-                                  fontSize: 18,
+                                  fontSize: 14,
                                 ),
                               ),
-                            ],
                             const SizedBox(height: 24),
                           ],
                           Wrap(
@@ -261,9 +239,9 @@ class _GameOverModalState extends State<GameOverModal> {
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

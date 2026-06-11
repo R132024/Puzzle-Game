@@ -98,7 +98,7 @@ abstract class GameEngine {
   void update(double dt);
 
   /// Start or restart the game from scratch.
-  void reset();
+  void reset({int initialLevel = 1});
 
   /// Toggle pause / resume.
   void togglePause();
@@ -111,4 +111,7 @@ abstract class GameEngine {
   void softDrop();
   void hardDrop();
   void holdPiece();
+  
+  /// Toggle fast dropping mode (soft drop acceleration).
+  void setFastDrop(bool enabled);
 }
