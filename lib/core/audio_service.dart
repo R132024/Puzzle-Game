@@ -12,6 +12,9 @@ class AudioService with WidgetsBindingObserver {
 
   final ValueNotifier<bool> bgmNotifier = ValueNotifier<bool>(true);
   final ValueNotifier<bool> sfxNotifier = ValueNotifier<bool>(true);
+  
+  final ValueNotifier<double> bgmVolumeNotifier = ValueNotifier<double>(0.5); // Default to 50%
+  final ValueNotifier<double> sfxVolumeNotifier = ValueNotifier<double>(0.5);
 
   late Future<void> _initFuture;
 
@@ -92,6 +95,7 @@ class AudioService with WidgetsBindingObserver {
     await _initFuture;
     if (!isBgmEnabled) return;
     try {
+      await _bgmPlayer.setVolume(bgmVolumeNotifier.value);
       await _bgmPlayer.play(AssetSource(assetPath));
     } catch (e) {
       debugPrint("Error playing BGM: $e");
@@ -129,6 +133,7 @@ class AudioService with WidgetsBindingObserver {
     if (!isSfxEnabled) return;
     try {
       final player = AudioPlayer();
+      await player.setVolume(sfxVolumeNotifier.value);
       await player.play(AssetSource('audio/$assetName'));
       // Liberar memoria cuando termine
       player.onPlayerComplete.listen((_) => player.dispose());
@@ -158,5 +163,14 @@ class AudioService with WidgetsBindingObserver {
 
   void toggleSfx() {
     sfxNotifier.value = !sfxNotifier.value;
+  }
+
+  void setBgmVolume(double volume) {
+    bgmVolumeNotifier.value = volume;
+    _bgmPlayer.setVolume(volume);
+  }
+
+  void setSfxVolume(double volume) {
+    sfxVolumeNotifier.value = volume;
   }
 }

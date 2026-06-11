@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:cubix_blast/core/audio_service.dart';
+
 class RadialMenuItem {
   final String title;
   final IconData icon;
@@ -16,63 +18,77 @@ class RadialMenuItem {
   });
 }
 
-class RadialModeMenu extends StatelessWidget {
+class RadialModeMenu extends StatefulWidget {
   final List<RadialMenuItem> items;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final VoidCallback onRandomPressed;
 
   const RadialModeMenu({
     super.key,
     required this.items,
     required this.selectedIndex,
     required this.onSelected,
+    required this.onRandomPressed,
   });
+
+  @override
+  State<RadialModeMenu> createState() => _RadialModeMenuState();
+}
+
+class _RadialModeMenuState extends State<RadialModeMenu> {
+  double _accumulatedDelta = 0;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final height = constraints.maxHeight;
-        final width = height / 2;
+        final centerOffset = height * 0.15; // padding a la izquierda para el botón central
+        final width = height * 0.65 + centerOffset;
 
-        final sweepAngle = math.pi / items.length; // 180 grados / n
+        final sweepAngle = math.pi / widget.items.length; // 180 grados / n
         // Calculamos la rotación necesaria para que el ítem seleccionado esté en 0 radianes
-        final targetRotation = (math.pi / 2) - ((selectedIndex + 0.5) * sweepAngle);
+        final targetRotation = (math.pi / 2) - ((widget.selectedIndex + 0.5) * sweepAngle);
 
         return TweenAnimationBuilder<double>(
-          tween: Tween(end: targetRotation),
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeOutBack,
+          tween: Tween(
+            begin: targetRotation - (math.pi * 1.5), // Animación inicial (giro largo)
+            end: targetRotation
+          ),
+          duration: const Duration(milliseconds: 1200),
+          curve: Curves.easeOutQuart,
           builder: (context, rotation, child) {
             return GestureDetector(
+              behavior: HitTestBehavior.translucent,
               onTapDown: (details) {
-                final center = Offset(0, height / 2);
+                final center = Offset(centerOffset, height / 2);
                 final dx = details.localPosition.dx - center.dx;
                 final dy = details.localPosition.dy - center.dy;
                 final distance = math.sqrt(dx * dx + dy * dy);
 
-                final outerRadius = height / 2;
-                final innerRadius = outerRadius * 0.45;
-
-                if (distance < innerRadius || distance > outerRadius) return;
-
-                // Calculamos el ángulo compensando la rotación actual
-                double angle = math.atan2(dy, dx) - rotation;
-
-                // Normalizamos el ángulo entre -pi y pi
-                while (angle <= -math.pi) angle += 2 * math.pi;
-                while (angle > math.pi) angle -= 2 * math.pi;
-
-                // Vemos a qué rebanada corresponde
-                // El diseño base va de -pi/2 a pi/2
-                if (angle < -math.pi / 2 || angle > math.pi / 2) return;
-
-                double normalizedAngle = angle + (math.pi / 2);
-                int index = (normalizedAngle / sweepAngle).floor();
-
-                if (index >= 0 && index < items.length) {
-                  onSelected(index);
+                // Check for random button tap (núcleo)
+                if (distance < height * 0.16) {
+                  widget.onRandomPressed();
+                  return;
                 }
+
+                final outerRadius = height * 0.45;
+
+                // Cualquier tap fuera del núcleo pero dentro de la rueda gigante
+                if (distance > (outerRadius + 80)) return;
+
+                // Vemos a qué rebanada corresponde basándonos en el ángulo en pantalla
+                double screenAngle = math.atan2(dy, dx);
+                
+                // Permitimos MUCHO margen (0.4 rad) en los bordes para facilitar el tap en la mitad derecha visible
+                if (screenAngle < (-math.pi / 2 - 0.4) || screenAngle > (math.pi / 2 + 0.4)) return;
+
+                // Calculamos el índice absoluto basado en la rotación total
+                double rawAngle = screenAngle - rotation;
+                int absoluteIndex = ((rawAngle + math.pi / 2) / sweepAngle).floor();
+
+                widget.onSelected(absoluteIndex);
               },
               child: SizedBox(
                 width: width,
@@ -81,21 +97,27 @@ class RadialModeMenu extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     // El menú giratorio
-                    Transform.rotate(
-                      angle: rotation,
-                      alignment: Alignment.centerLeft,
-                      child: CustomPaint(
-                        size: Size(width, height),
-                        painter: RadialMenuPainter(
-                          items: items,
-                          selectedIndex: selectedIndex,
-                          rotationOffset: rotation,
+                    Positioned(
+                      left: centerOffset,
+                      top: 0,
+                      bottom: 0,
+                      width: width - centerOffset,
+                      child: Transform.rotate(
+                        angle: rotation,
+                        alignment: Alignment.centerLeft,
+                        child: CustomPaint(
+                          size: Size(width - centerOffset, height),
+                          painter: RadialMenuPainter(
+                            items: widget.items,
+                            selectedIndex: widget.selectedIndex,
+                            rotationOffset: rotation,
+                          ),
                         ),
                       ),
                     ),
-                    // Cubo/Núcleo central estático
+                    // Cubo/Núcleo central interactivo (Botón Random)
                     Positioned(
-                      left: -height * 0.15,
+                      left: 0,
                       top: height * 0.35,
                       child: Container(
                         width: height * 0.3,
@@ -121,7 +143,7 @@ class RadialModeMenu extends StatelessWidget {
                         alignment: Alignment.centerRight,
                         padding: EdgeInsets.only(right: height * 0.04),
                         child: Icon(
-                          Icons.games,
+                          Icons.shuffle,
                           color: const Color(0xFF00E5FF),
                           size: height * 0.08,
                         ),
@@ -152,66 +174,94 @@ class RadialMenuPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(0, size.height / 2);
-    final outerRadius = size.height / 2;
-    final innerRadius = outerRadius * 0.45;
+    final outerRadius = size.height * 0.45;
+    final innerRadius = outerRadius * 0.35; // Más cerca al centro
     
     final sweepAngle = math.pi / items.length;
     final startOffset = -math.pi / 2;
 
-    for (int i = 0; i < items.length; i++) {
-      final isSelected = i == selectedIndex;
-      final currentStart = startOffset + (i * sweepAngle);
+    final totalItems = items.length;
+    final int selectedModIndex = selectedIndex % totalItems;
+    final int realSelectedMod = selectedModIndex < 0 ? selectedModIndex + totalItems : selectedModIndex;
+
+    final int startI = selectedIndex - totalItems;
+    final int endI = selectedIndex + totalItems;
+
+    // Primer paso: Dibujar TODOS los botones NO seleccionados
+    for (int i = startI; i <= endI; i++) {
+      int actualIndex = i % totalItems;
+      if (actualIndex < 0) actualIndex += totalItems;
       
-      final gap = 0.02;
-      
-      // Si está seleccionado, sobresale un poco
-      final extraRadius = isSelected ? 20.0 : 0.0;
-      final currentOuterRadius = outerRadius + extraRadius;
+      if (actualIndex == realSelectedMod) continue; // Saltamos los seleccionados
 
-      final path = Path()
-        ..arcTo(
-          Rect.fromCircle(center: center, radius: currentOuterRadius),
-          currentStart + gap,
-          sweepAngle - (gap * 2),
-          true,
-        )
-        ..arcTo(
-          Rect.fromCircle(center: center, radius: innerRadius),
-          currentStart + sweepAngle - gap,
-          -(sweepAngle - (gap * 2)),
-          false,
-        )
-        ..close();
-
-      final gradient = RadialGradient(
-        center: Alignment.centerLeft,
-        radius: 1.0,
-        colors: [
-          isSelected ? items[i].highlightColor : items[i].baseColor.withValues(alpha: 0.6),
-          const Color(0xFF060A14),
-        ],
-      );
-
-      final paint = Paint()
-        ..style = PaintingStyle.fill
-        ..shader = gradient.createShader(Rect.fromCircle(center: center, radius: currentOuterRadius));
-
-      if (isSelected) {
-        canvas.drawShadow(path, items[i].highlightColor, 20, true);
-      } else {
-        canvas.drawShadow(path, Colors.black, 10, true);
-      }
-
-      canvas.drawPath(path, paint);
-
-      final borderPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = isSelected ? 3.0 : 1.5
-        ..color = isSelected ? items[i].highlightColor : items[i].baseColor.withValues(alpha: 0.5);
-      canvas.drawPath(path, borderPaint);
-
-      _drawItemContent(canvas, center, currentOuterRadius, innerRadius, currentStart, sweepAngle, items[i], isSelected);
+      _drawSingleItem(canvas, center, outerRadius, innerRadius, startOffset, sweepAngle, i, actualIndex, false);
     }
+
+    // Segundo paso: Dibujar TODOS los botones seleccionados (sus clones) por encima
+    // para que su sombra neon se superponga y no sea opacada por los inactivos.
+    for (int i = startI; i <= endI; i++) {
+      int actualIndex = i % totalItems;
+      if (actualIndex < 0) actualIndex += totalItems;
+      
+      if (actualIndex != realSelectedMod) continue; // Saltamos los no seleccionados
+
+      _drawSingleItem(canvas, center, outerRadius, innerRadius, startOffset, sweepAngle, i, actualIndex, true);
+    }
+  }
+
+  void _drawSingleItem(Canvas canvas, Offset center, double outerRadius, double innerRadius, double startOffset, double sweepAngle, int i, int actualIndex, bool isSelected) {
+    final item = items[actualIndex];
+    final currentStart = startOffset + (i * sweepAngle);
+    
+    final gap = 0.02;
+    
+    // Si está seleccionado, sobresale un poco
+    final extraRadius = isSelected ? 20.0 : 0.0;
+    final currentOuterRadius = outerRadius + extraRadius;
+
+    final path = Path()
+      ..arcTo(
+        Rect.fromCircle(center: center, radius: currentOuterRadius),
+        currentStart + gap,
+        sweepAngle - (gap * 2),
+        true,
+      )
+      ..arcTo(
+        Rect.fromCircle(center: center, radius: innerRadius),
+        currentStart + sweepAngle - gap,
+        -(sweepAngle - (gap * 2)),
+        false,
+      )
+      ..close();
+
+    final gradient = RadialGradient(
+      center: Alignment.centerLeft,
+      radius: 1.0,
+      colors: [
+        isSelected ? item.highlightColor : item.baseColor.withValues(alpha: 0.6),
+        const Color(0xFF060A14),
+      ],
+    );
+
+    final paint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = gradient.createShader(Rect.fromCircle(center: center, radius: currentOuterRadius));
+
+    if (isSelected) {
+      canvas.drawShadow(path, item.highlightColor, 20, true);
+    } else {
+      canvas.drawShadow(path, Colors.black, 10, true);
+    }
+
+    canvas.drawPath(path, paint);
+
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = isSelected ? 3.0 : 1.5
+      ..color = isSelected ? item.highlightColor : item.baseColor.withValues(alpha: 0.5);
+    canvas.drawPath(path, borderPaint);
+
+    _drawItemContent(canvas, center, currentOuterRadius, innerRadius, currentStart, sweepAngle, item, isSelected);
   }
 
   void _drawItemContent(Canvas canvas, Offset center, double outerRadius, double innerRadius, double startAngle, double sweepAngle, RadialMenuItem item, bool isSelected) {

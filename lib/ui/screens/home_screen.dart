@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cubix_blast/core/high_score_store.dart';
@@ -7,6 +7,7 @@ import 'package:cubix_blast/core/audio_service.dart';
 import 'package:cubix_blast/core/player_manager.dart';
 import 'package:cubix_blast/core/mission_manager.dart';
 import 'package:cubix_blast/ui/widgets/radial_menu.dart';
+import 'package:cubix_blast/ui/widgets/particles_bg.dart';
 
 /// Home screen with animated mode selection menu and high scores.
 class HomeScreen extends StatefulWidget {
@@ -24,7 +25,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   bool _showModes = false;
   int _startingLevel = 1;
-  int _selectedModeIndex = 0;
+  int _absoluteModeIndex = 0; // Para el scroll infinito
+  double _accumulatedDelta = 0;
   List<Map<String, dynamic>> _leaderboard = [];
 
   @override
@@ -117,25 +119,78 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         actions: [
           ValueListenableBuilder<bool>(
             valueListenable: AudioService.instance.bgmNotifier,
-            builder: (context, isEnabled, child) {
-              return IconButton(
-                icon: Icon(isEnabled ? Icons.music_note : Icons.music_off, color: Colors.white70),
-                onPressed: () {
+            builder: (context, isBgmEnabled, child) {
+              // Si la música del juego está desactivada, asumimos que "Modo Música (Propia)" está ON
+              final isExternalMusicMode = !isBgmEnabled;
+              
+              return GestureDetector(
+                onTap: () {
                   AudioService.instance.playBoton();
                   AudioService.instance.toggleBgm();
+                  
+                  if (AudioService.instance.bgmNotifier.value == false) {
+                    // Significa que apagó la BGM del juego -> Activó Modo Música
+                    _showMusicModeAlert(context);
+                  }
                 },
-              );
-            },
-          ),
-          ValueListenableBuilder<bool>(
-            valueListenable: AudioService.instance.sfxNotifier,
-            builder: (context, isEnabled, child) {
-              return IconButton(
-                icon: Icon(isEnabled ? Icons.volume_up : Icons.volume_off, color: Colors.white70),
-                onPressed: () {
-                  AudioService.instance.playBoton();
-                  AudioService.instance.toggleSfx();
-                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isExternalMusicMode ? const Color(0xFFFF0055) : Colors.white24,
+                      width: 2,
+                    ),
+                    boxShadow: isExternalMusicMode ? [
+                      BoxShadow(
+                        color: const Color(0xFFFF0055).withValues(alpha: 0.5),
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      )
+                    ] : [],
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        isExternalMusicMode ? 'MODO MÚSICA ON' : 'MODO MÚSICA OFF',
+                        style: GoogleFonts.orbitron(
+                          color: isExternalMusicMode ? const Color(0xFFFF0055) : Colors.white54,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // El "switch" visual tipo iOS
+                      Container(
+                        width: 36,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: isExternalMusicMode ? const Color(0xFFFF0055).withValues(alpha: 0.3) : Colors.white12,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: AnimatedAlign(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          alignment: isExternalMusicMode ? Alignment.centerRight : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.all(2),
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isExternalMusicMode ? const Color(0xFFFF0055) : Colors.white54,
+                              boxShadow: isExternalMusicMode ? [
+                                BoxShadow(color: const Color(0xFFFF0055), blurRadius: 5)
+                              ] : [],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             },
           ),
@@ -178,20 +233,49 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                child: _showModes
-                    ? _buildModeSelection()
-                    : _buildInitialBanner(),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onVerticalDragUpdate: (details) {
+          if (!_showModes) return;
+          _accumulatedDelta += details.delta.dy;
+          if (_accumulatedDelta < -40) {
+            AudioService.instance.playBoton();
+            setState(() => _absoluteModeIndex++);
+            _accumulatedDelta = 0;
+          } else if (_accumulatedDelta > 40) {
+            AudioService.instance.playBoton();
+            setState(() => _absoluteModeIndex--);
+            _accumulatedDelta = 0;
+          }
+        },
+        onVerticalDragEnd: (_) {
+          _accumulatedDelta = 0;
+        },
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ParticlesBg(
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                speedMultiplier: 0.3,
               ),
             ),
-          ),
+            SafeArea(
+              child: FadeTransition(
+                opacity: _fadeAnim,
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      child: _showModes
+                          ? _buildModeSelection()
+                          : _buildInitialBanner(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -505,39 +589,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Expanded(
             flex: 4,
             child: Transform.translate(
-              offset: const Offset(-32, 0), // Pegado al borde
-              child: RadialModeMenu(
-                selectedIndex: _selectedModeIndex,
-                onSelected: (index) {
-                  AudioService.instance.playBoton();
-                  setState(() => _selectedModeIndex = index);
-                },
-                items: [
-                  RadialMenuItem(
-                    title: 'CLÁSICO',
-                    icon: Icons.grid_on,
-                    baseColor: const Color(0xFF00E5FF),
-                    highlightColor: const Color(0xFF00B8D4),
+              offset: const Offset(-107, 0), // Ajustado para el nuevo centerOffset en radial_menu
+              child: SizedBox(
+                height: 500, // Altura del menú radial
+                width: double.infinity,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: RadialModeMenu(
+                    selectedIndex: _absoluteModeIndex,
+                    onSelected: (index) {
+                      AudioService.instance.playBoton();
+                      setState(() => _absoluteModeIndex = index);
+                    },
+                    onRandomPressed: () {
+                      AudioService.instance.playBoton();
+                      // Elegimos un número aleatorio y calculamos a qué índice absoluto mapea
+                      // Queremos que el giro sea siempre hacia adelante, así que sumamos.
+                      final currentMod = _absoluteModeIndex % 5;
+                      final realCurrentMod = currentMod < 0 ? currentMod + 5 : currentMod;
+                      final targetMod = Random().nextInt(3); // 0, 1, 2
+                      
+                      // Calculamos cuántos pasos hacia adelante necesitamos para llegar a targetMod
+                      int steps = targetMod - realCurrentMod;
+                      if (steps <= 0) steps += 5; // Siempre avanzamos girando
+                      
+                      setState(() => _absoluteModeIndex += steps);
+                    },
+                    items: [
+                      RadialMenuItem(
+                        title: 'CLÁSICO',
+                        icon: Icons.grid_on,
+                        baseColor: const Color(0xFF00E5FF),
+                        highlightColor: const Color(0xFF00B8D4),
+                      ),
+                      RadialMenuItem(
+                        title: 'ARENA',
+                        icon: Icons.timer,
+                        baseColor: const Color(0xFFFF3D00),
+                        highlightColor: const Color(0xFFDD2C00),
+                      ),
+                      RadialMenuItem(
+                        title: 'PODERES',
+                        icon: Icons.bolt,
+                        baseColor: const Color(0xFFFFD600),
+                        highlightColor: const Color(0xFFFFAB00),
+                      ),
+                      RadialMenuItem(
+                        title: 'MULTI',
+                        icon: Icons.wifi_tethering,
+                        baseColor: const Color(0xFFD500F9),
+                        highlightColor: const Color(0xFFAA00FF),
+                      ),
+                      RadialMenuItem(
+                        title: 'AJUSTES',
+                        icon: Icons.settings,
+                        baseColor: Colors.grey,
+                        highlightColor: Colors.white,
+                      ),
+                    ],
                   ),
-                  RadialMenuItem(
-                    title: 'ARENA',
-                    icon: Icons.timer,
-                    baseColor: const Color(0xFFFF3D00),
-                    highlightColor: const Color(0xFFDD2C00),
-                  ),
-                  RadialMenuItem(
-                    title: 'PODERES',
-                    icon: Icons.bolt,
-                    baseColor: const Color(0xFFFFD600),
-                    highlightColor: const Color(0xFFFFAB00),
-                  ),
-                  RadialMenuItem(
-                    title: 'MULTI',
-                    icon: Icons.wifi_tethering,
-                    baseColor: const Color(0xFFD500F9),
-                    highlightColor: const Color(0xFFAA00FF),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -582,15 +693,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         'color': const Color(0xFFD500F9),
         'route': '/multiplayer_lobby',
       },
+      {
+        'title': 'CONFIGURACIÓN',
+        'desc': 'Ajusta el volumen de la música y los efectos de sonido a tu gusto.',
+        'color': Colors.grey,
+        'route': '',
+      },
     ];
 
-    final info = modesInfo[_selectedModeIndex];
+    // Obtenemos el índice real asegurando que sea positivo usando módulo
+    int modIndex = _absoluteModeIndex % modesInfo.length;
+    if (modIndex < 0) modIndex += modesInfo.length;
+
+    final info = modesInfo[modIndex];
     final color = info['color'] as Color;
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: Container(
-        key: ValueKey(_selectedModeIndex),
+        key: ValueKey(modIndex),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: const Color(0xFF0F172A).withValues(alpha: 0.8),
@@ -631,8 +752,43 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 32),
             
-            // Selector de Nivel
-            if (_selectedModeIndex != 3) ...[
+            // Selector de Nivel o Sliders de Audio
+            if (modIndex == 4) ...[
+              Text(
+                'MÚSICA',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.orbitron(
+                  fontSize: 12,
+                  color: Colors.white54,
+                ),
+              ),
+              ValueListenableBuilder<double>(
+                valueListenable: AudioService.instance.bgmVolumeNotifier,
+                builder: (context, vol, child) => Slider(
+                  value: vol,
+                  activeColor: color,
+                  onChanged: (v) => AudioService.instance.setBgmVolume(v),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'EFECTOS',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.orbitron(
+                  fontSize: 12,
+                  color: Colors.white54,
+                ),
+              ),
+              ValueListenableBuilder<double>(
+                valueListenable: AudioService.instance.sfxVolumeNotifier,
+                builder: (context, vol, child) => Slider(
+                  value: vol,
+                  activeColor: color,
+                  onChanged: (v) => AudioService.instance.setSfxVolume(v),
+                  onChangeEnd: (v) => AudioService.instance.playBoton(),
+                ),
+              ),
+            ] else if (modIndex != 3) ...[
               Text(
                 'NIVEL INICIAL',
                 textAlign: TextAlign.center,
@@ -684,43 +840,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             const Spacer(),
             
             // Botón Jugar
-            ElevatedButton(
-              onPressed: () {
-                AudioService.instance.playBoton();
-                if (_selectedModeIndex == 3) {
-                  Navigator.pushNamed(context, info['route'] as String);
-                } else {
-                  Navigator.pushNamed(context, info['route'] as String, arguments: {'initialLevel': _startingLevel}).then((_) => _loadRecords());
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 8,
-                shadowColor: color.withValues(alpha: 0.5),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.play_arrow, size: 28),
-                  const SizedBox(width: 8),
-                  Text(
-                    'JUGAR',
-                    style: GoogleFonts.orbitron(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                    ),
+            if (modIndex != 4) ...[
+              ElevatedButton(
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  if (modIndex == 3) {
+                    Navigator.pushNamed(context, info['route'] as String);
+                  } else {
+                    Navigator.pushNamed(context, info['route'] as String, arguments: {'initialLevel': _startingLevel}).then((_) => _loadRecords());
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: color,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  elevation: 8,
+                  shadowColor: color.withValues(alpha: 0.5),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.play_arrow, size: 28),
+                    const SizedBox(width: 8),
+                    Text(
+                      'JUGAR',
+                      style: GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+            ],
             
-            const SizedBox(height: 16),
             // Botón Volver
             TextButton(
               onPressed: () {
@@ -767,6 +925,96 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
                 letterSpacing: 4,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMusicModeAlert(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 40),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFFF0055), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF0055).withValues(alpha: 0.6),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.headphones,
+                    color: const Color(0xFFFF0055),
+                    size: 64,
+                    shadows: [
+                      Shadow(color: const Color(0xFFFF0055), blurRadius: 20)
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '¡MODO MÚSICA ACTIVADO!',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.orbitron(
+                      color: const Color(0xFFFF0055),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(color: const Color(0xFFFF0055), blurRadius: 10)
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Disfruta tu propia música de forma envolvente. ¡El fondo del juego reaccionará y vibrará dinámicamente al ritmo de tus canciones favoritas!',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.orbitron(
+                      color: Colors.white,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      AudioService.instance.playBoton();
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF0055),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 10,
+                      shadowColor: const Color(0xFFFF0055),
+                    ),
+                    child: Text(
+                      '¡ENTENDIDO!',
+                      style: GoogleFonts.orbitron(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
