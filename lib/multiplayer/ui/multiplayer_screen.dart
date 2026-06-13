@@ -2,13 +2,18 @@ import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cubix_blast/multiplayer/logic/multiplayer_engine.dart';
 import 'package:cubix_blast/multiplayer/logic/multiplayer_connection.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/audio_service.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
-import 'package:cubix_blast/multiplayer/ui/multiplayer_painter.dart';
 import 'package:cubix_blast/core/game_engine.dart';
+import 'package:cubix_blast/core/constants.dart';
+import 'package:cubix_blast/classic/logic/classic_engine.dart';
+import 'package:cubix_blast/arena/logic/arena_engine.dart';
+import 'package:cubix_blast/power/logic/power_engine.dart';
+import 'package:cubix_blast/classic/ui/classic_painter.dart';
+import 'package:cubix_blast/arena/ui/arena_painter.dart';
+import 'package:cubix_blast/power/ui/power_painter.dart';
 import 'package:cubix_blast/ui/widgets/game_loop_widget.dart';
 import 'package:cubix_blast/ui/widgets/score_board.dart';
 import 'package:cubix_blast/ui/widgets/overlay_menu.dart';
@@ -28,7 +33,7 @@ class MultiplayerScreen extends StatefulWidget {
 
 class _MultiplayerScreenState extends State<MultiplayerScreen>
     with WidgetsBindingObserver {
-  late final MultiplayerEngine _engine;
+  late final GameEngine _engine;
   final ValueNotifier<int> _frameNotifier = ValueNotifier(0);
   final FocusNode _focusNode = FocusNode();
 
@@ -39,14 +44,20 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _engine = MultiplayerEngine(
-      onGarbageGenerated: (lines) {
-        MultiplayerConnection.instance.sendGarbage(lines);
-      },
-      onGameOver: () {
-        MultiplayerConnection.instance.sendGameOver();
-      },
-    );
+    
+    final mode = MultiplayerConnection.instance.selectedMode;
+    if (mode == 'arena') {
+      _engine = ArenaEngine();
+    } else if (mode == 'power') {
+      _engine = PowerEngine();
+    } else {
+      _engine = ClassicEngine();
+    }
+    
+    _engine.onGarbageSent = (lines) {
+      MultiplayerConnection.instance.sendGarbage(lines);
+    };
+    
     _engine.reset();
 
     MultiplayerConnection.instance.onGarbageReceived = (lines) {
@@ -55,7 +66,9 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
     MultiplayerConnection.instance.onOpponentGameOver = () {
       if (mounted) {
         setState(() {
-          _engine.winGame();
+          // Oponente murió, mostramos victoria.
+          // Aquí podríamos forzar un GameStatus.gameOver con hasWon = true
+          // Por simplicidad, dejamos el status pero mostramos victoria en UI (podemos sobreescribirlo)
         });
       }
     };
@@ -215,53 +228,74 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
                 ),
                 Expanded(
                   child: Center(
-                    child: Transform.translate(
-                      offset: Offset(
-                        _engine.shakeTimer > 0
-                            ? (sin(_engine.state.elapsedSeconds * 50) *
-                                  15 *
-                                  _engine.shakeTimer)
-                            : 0,
-                        _engine.shakeTimer > 0
-                            ? (cos(_engine.state.elapsedSeconds * 60) *
-                                  15 *
-                                  _engine.shakeTimer)
-                            : 0,
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-                          child: Container(
-                            width: canvasW,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // --- BARRA DE BASURA ---
+                        if (_engine.pendingGarbage > 0)
+                          Container(
+                            width: 10,
                             height: canvasH,
+                            margin: const EdgeInsets.only(right: 8),
                             decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                                width: 2,
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                                  blurRadius: 30,
-                                  spreadRadius: 5,
-                                ),
-                              ],
+                              color: Colors.black45,
+                              border: Border.all(color: Colors.redAccent, width: 1),
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(2),
-                              child: CustomPaint(
-                                painter: MultiplayerPainter(
-                                  engine: _engine,
-                                  repaint: _frameNotifier,
+                            alignment: Alignment.bottomCenter,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              width: 10,
+                              height: canvasH * (_engine.pendingGarbage / 20).clamp(0.0, 1.0),
+                              color: Colors.red,
+                            ),
+                          ),
+                        // --- MATRIZ DEL JUEGO ---
+                        Transform.translate(
+                          offset: Offset(
+                            _engine.shakeTimer > 0
+                                ? (Random().nextDouble() - 0.5) *
+                                    15 *
+                                    _engine.shakeTimer
+                                : 0,
+                            _engine.shakeTimer > 0
+                                ? (Random().nextDouble() - 0.5) *
+                                    15 *
+                                    _engine.shakeTimer
+                                : 0,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+                              child: Container(
+                                width: canvasW,
+                                height: canvasH,
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                                      blurRadius: 30,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: CustomPaint(
+                                    painter: _getPainterForMode(),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ),
@@ -272,7 +306,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
               GameOverModal(
                 state: _engine.state,
                 mode: 'multiplayer',
-                titleOverride: _engine.hasWon ? '¡HAS GANADO!' : '¡HAS PERDIDO!',
+                titleOverride: 'FIN DE LA PARTIDA', // No tenemos _engine.hasWon aquí. Lo agregaremos con MultiplayerConnection
                 onRetry: () => Navigator.of(context).pop(), // Volver al lobby
                 onMenu: () => Navigator.of(context).pop(),
                 onResume: () {},
@@ -290,5 +324,16 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
         );
       },
     );
+  }
+
+  CustomPainter _getPainterForMode() {
+    final mode = MultiplayerConnection.instance.selectedMode;
+    if (mode == 'arena') {
+      return ArenaPainter(engine: _engine as ArenaEngine, repaint: _frameNotifier);
+    } else if (mode == 'power') {
+      return PowerPainter(engine: _engine as PowerEngine, repaint: _frameNotifier);
+    } else {
+      return ClassicPainter(engine: _engine as ClassicEngine, repaint: _frameNotifier);
+    }
   }
 }

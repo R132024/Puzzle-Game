@@ -47,6 +47,17 @@ class ArenaEngine implements GameEngine {
   /// Fine-grained sand particle grid (40×80). Exposed for rendering.
   final SandGrid sandGrid;
 
+  @override
+  void Function(int damage)? onGarbageSent;
+
+  @override
+  int pendingGarbage = 0;
+
+  @override
+  void receiveGarbage(int lines) {
+    pendingGarbage += lines;
+  }
+
   // ─── State ──────────────────────────────────────────────────
 
   @override
@@ -119,6 +130,7 @@ class ArenaEngine implements GameEngine {
     floatingTexts.clear();
     hardDropTrails.clear();
     currentCombo = 0;
+    pendingGarbage = 0;
     _spawnPiece();
   }
 
@@ -258,6 +270,14 @@ class ArenaEngine implements GameEngine {
 
     // Spawn de la siguiente pieza inmediatamente (no esperamos a que la arena caiga)
     _spawnPiece();
+    
+    // Si no hubo arena activa ni piezas y hay garbage, lo aplicamos (Arena es más laxo con esto, aplicamos al soltar)
+    if (pendingGarbage > 0) {
+      int holeCol = Random().nextInt(gridColumns);
+      // La basura en la arena simplemente puede ser bloques sólidos debajo
+      sandGrid.insertGarbageLines(pendingGarbage, holeCol);
+      pendingGarbage = 0;
+    }
   }
 
   // ─── Sand Phase ─────────────────────────────────────────────
@@ -321,6 +341,26 @@ class ArenaEngine implements GameEngine {
 
         if (newLevel > state.level) {
           floatingTexts.add(FloatingText('LEVEL UP!', 3.0, 0xFFFF1744));
+        }
+        
+        // Simple damage for Arena (no T-spins, just based on size)
+        int damage = count > 20 ? 4 : (count > 10 ? 2 : 1);
+        
+        // Combo damage
+        if (currentCombo > 0) {
+          if (currentCombo >= 1 && currentCombo <= 3) damage += 1;
+          else if (currentCombo >= 4) damage += 2;
+        }
+        
+        if (damage > 0) {
+          if (pendingGarbage > 0) {
+            int offset = min(pendingGarbage, damage);
+            pendingGarbage -= offset;
+            damage -= offset;
+          }
+          if (damage > 0 && onGarbageSent != null) {
+            onGarbageSent!(damage);
+          }
         }
 
         state = state.copyWith(

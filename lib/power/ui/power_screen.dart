@@ -269,28 +269,40 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildPowerButtonsRow(),
+                ValueListenableBuilder<int>(
+                  valueListenable: _frameNotifier,
+                  builder: (context, frame, child) {
+                    return _buildPowerButtonsRow();
+                  },
+                ),
                 const SizedBox(height: 16),
               ],
             ),
             ),
-            if (_engine.state.status == GameStatus.gameOver)
-              GameOverModal(
-                state: _engine.state,
-                mode: 'power',
-                onRetry: () => _engine.reset(initialLevel: _startingLevel),
-                onMenu: () => Navigator.of(context).pop(),
-                onResume: () {},
-              )
-            else if (_engine.state.status == GameStatus.paused)
-              OverlayMenu(
-                title: context.t('paused'),
-                score: _engine.state.score,
-                bestScore: _engine.highScore,
-                onResume: _engine.togglePause,
-                onRestart: () => _engine.reset(initialLevel: _startingLevel),
-                onHome: () => Navigator.of(context).pop(),
-              ),
+            ValueListenableBuilder<int>(
+              valueListenable: _frameNotifier,
+              builder: (context, frame, child) {
+                if (_engine.state.status == GameStatus.gameOver) {
+                  return GameOverModal(
+                    state: _engine.state,
+                    mode: 'power',
+                    onRetry: () => _engine.reset(initialLevel: _startingLevel),
+                    onMenu: () => Navigator.of(context).pop(),
+                    onResume: () {},
+                  );
+                } else if (_engine.state.status == GameStatus.paused) {
+                  return OverlayMenu(
+                    title: context.t('paused'),
+                    score: _engine.state.score,
+                    bestScore: _engine.highScore,
+                    onResume: _engine.togglePause,
+                    onRestart: () => _engine.reset(initialLevel: _startingLevel),
+                    onHome: () => Navigator.of(context).pop(),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ],
         );
       },
@@ -381,13 +393,13 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
                 ),
                 if (isCoolingDown)
                   SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: CircularProgressIndicator(
-                      value: 1.0 - progress,
-                      color: color,
-                      backgroundColor: Colors.transparent,
-                      strokeWidth: 3,
+                    width: 60,
+                    height: 60,
+                    child: CustomPaint(
+                      painter: _CooldownPainter(
+                        progress: progress,
+                        color: color.withValues(alpha: 0.6),
+                      ),
                     ),
                   ),
                 if (isCoolingDown)
@@ -419,5 +431,36 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
         ],
       ),
     );
+  }
+}
+
+class _CooldownPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+
+  _CooldownPainter({required this.progress, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final sweepAngle = 2 * pi * progress;
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -pi / 2, // Start at 12 o'clock
+      -sweepAngle, // Sweep counter-clockwise
+      true, // Use center to make it a pie slice
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _CooldownPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }

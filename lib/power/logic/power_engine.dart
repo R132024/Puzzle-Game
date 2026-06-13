@@ -16,6 +16,7 @@ import 'package:cubix_blast/core/score_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:cubix_blast/classic/logic/line_clearer.dart';
 import 'package:cubix_blast/core/audio_service.dart';
+import 'package:cubix_blast/core/combat_logic.dart';
 
 class PowerEngine implements GameEngine {
   PowerEngine({int? seed})
@@ -25,6 +26,17 @@ class PowerEngine implements GameEngine {
   final PieceFactory _factory;
   final Grid _grid;
   final LineClearer _lineClearer = const LineClearer();
+
+  @override
+  void Function(int damage)? onGarbageSent;
+
+  @override
+  int pendingGarbage = 0;
+
+  @override
+  void receiveGarbage(int lines) {
+    pendingGarbage += lines;
+  }
 
   // ─── State ──────────────────────────────────────────────────
 
@@ -56,6 +68,8 @@ class PowerEngine implements GameEngine {
   int get highScore => ScoreManager.classicHighScore;
 
   int currentCombo = 0;
+  LastMoveType _lastMoveType = LastMoveType.none;
+  bool _b2bActive = false;
 
   /// The grid of locked blocks (exposed for rendering).
   Grid get grid => _grid;
@@ -91,40 +105,36 @@ class PowerEngine implements GameEngine {
     HapticFeedback.mediumImpact();
   }
 
-  /// Láser: clears the bottom 2 rows and drops everything above.
+  /// Láser: clears the bottom 1 row.
   void activateLaser() {
     if (state.status != GameStatus.playing) return;
     if (laserCooldown > 0) return;
 
-    // Clear the 2 bottom rows
+    // Clear the bottom row
     final bottomRow1 = gridRows - 1;
-    final bottomRow2 = gridRows - 2;
 
-    // Clear both rows
+    // Clear row
     _grid.clearRow(bottomRow1);
-    _grid.clearRow(bottomRow2);
 
-    // Drop rows above: shift everything down by 2
-    for (int r = gridRows - 3; r >= 0; r--) {
-      _grid.copyRow(r, r + 2);
+    // Drop rows above: shift everything down by 1
+    for (int r = gridRows - 2; r >= 0; r--) {
+      _grid.copyRow(r, r + 1);
     }
-    // Clear the top 2 rows that were copied from
+    // Clear the top row that was copied from
     _grid.clearRow(0);
-    _grid.clearRow(1);
 
     // Animation & feedback
     laserFlashTimer = 0.5;
     laserCooldown = 30.0;
     shakeTimer = 0.25;
     clearedRowTimers[bottomRow1] = 0.4;
-    clearedRowTimers[bottomRow2] = 0.4;
-    lastClearedRows = [bottomRow1, bottomRow2];
+    lastClearedRows = [bottomRow1];
     AudioService.instance.playLaser();
     floatingTexts.add(FloatingText('¡LÁSER!', 2.0, 0xFFFF1744));
 
     // Award score for the cleared rows
-    final scoreAdd = lineScoreTable[min(2, 4)] * state.level;
-    final newLines = state.linesCleared + 2;
+    final scoreAdd = lineScoreTable[min(1, 4)] * state.level;
+    final newLines = state.linesCleared + 1;
     final newLevel = _initialLevel + (newLines ~/ linesPerLevel);
     state = state.copyWith(
       score: state.score + scoreAdd,
@@ -136,13 +146,13 @@ class PowerEngine implements GameEngine {
     HapticFeedback.heavyImpact();
   }
 
-  /// Meteorito: clears the bottom 6 rows with massive impact.
+  /// Meteorito: clears 3 rows but higher cooldown
   void activateMeteorite() {
     if (state.status != GameStatus.playing) return;
     if (meteoriteCooldown > 0) return;
 
-    // Clear bottom 6 rows
-    const rowsToClear = 6;
+    // Clear bottom 3 rows
+    const rowsToClear = 3;
     final clearedRows = <int>[];
     for (int r = gridRows - 1; r >= gridRows - rowsToClear && r >= 0; r--) {
       _grid.clearRow(r);
@@ -150,7 +160,7 @@ class PowerEngine implements GameEngine {
       clearedRowTimers[r] = 0.6; // longer animation for impact
     }
 
-    // Drop everything above down by 6
+    // Drop everything above down by 3
     for (int r = gridRows - rowsToClear - 1; r >= 0; r--) {
       _grid.copyRow(r, r + rowsToClear);
     }
@@ -161,14 +171,14 @@ class PowerEngine implements GameEngine {
 
     // Massive feedback
     meteoriteFlashTimer = 0.7;
-    meteoriteCooldown = 40.0;
+    meteoriteCooldown = 60.0;
     shakeTimer = 0.5;
     lastClearedRows = clearedRows;
     AudioService.instance.playMeteorito();
     floatingTexts.add(FloatingText('¡¡METEORITO!!', 2.5, 0xFFFF6D00));
 
     // Award score
-    final scoreAdd = lineScoreTable[4] * state.level; // Treat as tetris-level clear
+    final scoreAdd = lineScoreTable[min(rowsToClear, 4)] * state.level; // Treat as normal clear
     final newLines = state.linesCleared + rowsToClear;
     final newLevel = _initialLevel + (newLines ~/ linesPerLevel);
     state = state.copyWith(
@@ -222,6 +232,9 @@ class PowerEngine implements GameEngine {
     laserFlashTimer = 0;
     meteoriteCooldown = 0;
     meteoriteFlashTimer = 0;
+    _b2bActive = false;
+    pendingGarbage = 0;
+    _lastMoveType = LastMoveType.none;
     _spawnPiece();
   }
 
@@ -342,6 +355,7 @@ class PowerEngine implements GameEngine {
     final moved = activePiece!.moved(0, -1);
     if (!_grid.collides(moved)) {
       activePiece = moved;
+      _lastMoveType = LastMoveType.move;
       _resetLockIfMoved();
       HapticFeedback.lightImpact();
     }
@@ -353,6 +367,7 @@ class PowerEngine implements GameEngine {
     final moved = activePiece!.moved(0, 1);
     if (!_grid.collides(moved)) {
       activePiece = moved;
+      _lastMoveType = LastMoveType.move;
       _resetLockIfMoved();
       HapticFeedback.lightImpact();
     }
@@ -368,6 +383,7 @@ class PowerEngine implements GameEngine {
     // Try basic rotation
     if (!_grid.collides(rotated)) {
       activePiece = rotated;
+      _lastMoveType = LastMoveType.rotation;
       _resetLockIfMoved();
       HapticFeedback.lightImpact();
       return;
@@ -381,6 +397,7 @@ class PowerEngine implements GameEngine {
         final kicked = rotated.moved(kick.row, kick.col);
         if (!_grid.collides(kicked)) {
           activePiece = kicked;
+          _lastMoveType = LastMoveType.rotation;
           _resetLockIfMoved();
           HapticFeedback.lightImpact();
           return;
@@ -395,6 +412,7 @@ class PowerEngine implements GameEngine {
     final moved = activePiece!.moved(1, 0);
     if (!_grid.collides(moved)) {
       activePiece = moved;
+      _lastMoveType = LastMoveType.drop;
       state = state.copyWith(score: state.score + softDropScore);
       _dropTimer = 0;
     }
@@ -409,6 +427,7 @@ class PowerEngine implements GameEngine {
       piece = piece.moved(1, 0);
     }
     activePiece = piece;
+    _lastMoveType = LastMoveType.drop;
 
     // Add trail
     for (final cell in piece.absoluteCells) {
@@ -527,7 +546,7 @@ class PowerEngine implements GameEngine {
   void _lockPiece() {
     if (activePiece == null) return;
 
-
+    final tSpin = CombatLogic.detectTSpin(activePiece!, _grid, _lastMoveType);
 
     _grid.lockPiece(activePiece!);
 
@@ -560,6 +579,44 @@ class PowerEngine implements GameEngine {
           FloatingText('COMBO x$currentCombo', 1.5, 0xFFFFD600),
         );
       }
+      
+      bool isTetris = result.count == 4;
+      bool isB2BEligible = isTetris || tSpin != TSpinType.none;
+      bool isB2B = _b2bActive && isB2BEligible;
+
+      if (tSpin != TSpinType.none) {
+        final spinText = tSpin == TSpinType.mini ? "T-SPIN MINI" : "T-SPIN";
+        floatingTexts.add(FloatingText(spinText, 2.0, 0xFFFF0055));
+      }
+
+      if (isB2B) {
+        floatingTexts.add(FloatingText('BACK-TO-BACK!', 1.5, 0xFFFFD600));
+      }
+
+      int damage = CombatLogic.calculateDamage(
+        linesCleared: result.count,
+        tSpin: tSpin,
+        b2b: isB2B,
+        combo: currentCombo,
+        perfectClear: false,
+      );
+
+      if (damage > 0) {
+        if (pendingGarbage > 0) {
+          int offset = min(pendingGarbage, damage);
+          pendingGarbage -= offset;
+          damage -= offset;
+        }
+        if (damage > 0 && onGarbageSent != null) {
+          onGarbageSent!(damage);
+        }
+      }
+
+      if (isB2BEligible) {
+        _b2bActive = true;
+      } else {
+        _b2bActive = false;
+      }
 
       if (result.count >= 4) {
         shakeTimer = 0.3;
@@ -585,11 +642,22 @@ class PowerEngine implements GameEngine {
       );
     } else {
       currentCombo = 0;
+      
+      if (pendingGarbage > 0) {
+        int holeCol = Random().nextInt(gridColumns);
+        _grid.insertGarbageLines(pendingGarbage, holeCol);
+        pendingGarbage = 0;
+        
+        if (activePiece != null && _grid.collides(activePiece!)) {
+          state = state.copyWith(status: GameStatus.gameOver);
+        }
+      }
     }
 
     activePiece = null;
     _isLocking = false;
     _lockTimer = 0;
+    _lastMoveType = LastMoveType.none;
 
     _spawnPiece();
   }

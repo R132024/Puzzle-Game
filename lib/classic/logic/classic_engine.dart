@@ -15,6 +15,7 @@ import 'package:cubix_blast/core/piece_factory.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/audio_service.dart';
 import 'package:flutter/services.dart';
+import 'package:cubix_blast/core/combat_logic.dart';
 import 'line_clearer.dart';
 
 class ClassicEngine implements GameEngine {
@@ -25,6 +26,14 @@ class ClassicEngine implements GameEngine {
   final PieceFactory _factory;
   final Grid _grid;
   final LineClearer _lineClearer = const LineClearer();
+
+  @override
+  void Function(int damage)? onGarbageSent;
+
+  @override
+  void receiveGarbage(int lines) {
+    pendingGarbage += lines;
+  }
 
   // ─── State ──────────────────────────────────────────────────
 
@@ -56,6 +65,10 @@ class ClassicEngine implements GameEngine {
   int get highScore => ScoreManager.classicHighScore;
 
   int currentCombo = 0;
+  LastMoveType _lastMoveType = LastMoveType.none;
+  bool _b2bActive = false;
+  @override
+  int pendingGarbage = 0;
 
   /// The grid of locked blocks (exposed for rendering).
   Grid get grid => _grid;
@@ -97,6 +110,9 @@ class ClassicEngine implements GameEngine {
     floatingTexts.clear();
     hardDropTrails.clear();
     currentCombo = 0;
+    _b2bActive = false;
+    pendingGarbage = 0;
+    _lastMoveType = LastMoveType.none;
     _spawnPiece();
   }
 
@@ -189,6 +205,7 @@ class ClassicEngine implements GameEngine {
     final moved = activePiece!.moved(0, -1);
     if (!_grid.collides(moved)) {
       activePiece = moved;
+      _lastMoveType = LastMoveType.move;
       _resetLockIfMoved();
       HapticFeedback.lightImpact();
     }
@@ -200,6 +217,7 @@ class ClassicEngine implements GameEngine {
     final moved = activePiece!.moved(0, 1);
     if (!_grid.collides(moved)) {
       activePiece = moved;
+      _lastMoveType = LastMoveType.move;
       _resetLockIfMoved();
       HapticFeedback.lightImpact();
     }
@@ -215,6 +233,7 @@ class ClassicEngine implements GameEngine {
     // Try basic rotation
     if (!_grid.collides(rotated)) {
       activePiece = rotated;
+      _lastMoveType = LastMoveType.rotation;
       _resetLockIfMoved();
       HapticFeedback.lightImpact();
       return;
@@ -228,6 +247,7 @@ class ClassicEngine implements GameEngine {
         final kicked = rotated.moved(kick.row, kick.col);
         if (!_grid.collides(kicked)) {
           activePiece = kicked;
+          _lastMoveType = LastMoveType.rotation;
           _resetLockIfMoved();
           HapticFeedback.lightImpact();
           return;
@@ -242,6 +262,7 @@ class ClassicEngine implements GameEngine {
     final moved = activePiece!.moved(1, 0);
     if (!_grid.collides(moved)) {
       activePiece = moved;
+      _lastMoveType = LastMoveType.drop;
       state = state.copyWith(score: state.score + softDropScore);
       _dropTimer = 0;
     }
@@ -256,6 +277,7 @@ class ClassicEngine implements GameEngine {
       piece = piece.moved(1, 0);
     }
     activePiece = piece;
+    _lastMoveType = LastMoveType.drop;
 
     // Add trail
     for (final cell in piece.absoluteCells) {
@@ -373,6 +395,10 @@ class ClassicEngine implements GameEngine {
 
   void _lockPiece() {
     if (activePiece == null) return;
+    
+    // Detect T-Spin before locking
+    final tSpin = CombatLogic.detectTSpin(activePiece!, _grid, _lastMoveType);
+    
     _grid.lockPiece(activePiece!);
 
     // Clear lines
@@ -404,6 +430,45 @@ class ClassicEngine implements GameEngine {
           FloatingText('COMBO x$currentCombo', 1.5, 0xFFFFD600),
         );
       }
+      
+      bool isTetris = result.count == 4;
+      bool isB2BEligible = isTetris || tSpin != TSpinType.none;
+      bool isB2B = _b2bActive && isB2BEligible;
+      
+      if (tSpin != TSpinType.none) {
+        final spinText = tSpin == TSpinType.mini ? "T-SPIN MINI" : "T-SPIN";
+        floatingTexts.add(FloatingText(spinText, 2.0, 0xFFFF0055));
+      }
+      
+      if (isB2B) {
+        floatingTexts.add(FloatingText('BACK-TO-BACK!', 1.5, 0xFFFFD600));
+      }
+      
+      // Calculate damage
+      int damage = CombatLogic.calculateDamage(
+        linesCleared: result.count,
+        tSpin: tSpin,
+        b2b: isB2B,
+        combo: currentCombo,
+        perfectClear: _isPerfectClear(),
+      );
+      
+      if (damage > 0) {
+        if (pendingGarbage > 0) {
+          int offset = min(pendingGarbage, damage);
+          pendingGarbage -= offset;
+          damage -= offset;
+        }
+        if (damage > 0 && onGarbageSent != null) {
+          onGarbageSent!(damage);
+        }
+      }
+
+      if (isB2BEligible) {
+        _b2bActive = true;
+      } else {
+        _b2bActive = false;
+      }
 
       if (result.count >= 4) {
         shakeTimer = 0.3;
@@ -429,13 +494,44 @@ class ClassicEngine implements GameEngine {
       );
     } else {
       currentCombo = 0;
+      
+      // Si la pieza se fija sin limpiar líneas y hay basura pendiente, insertarla
+      if (pendingGarbage > 0) {
+        _spawnGarbage();
+      }
     }
 
     activePiece = null;
     _isLocking = false;
     _lockTimer = 0;
+    _lastMoveType = LastMoveType.none;
 
     _spawnPiece();
+  }
+  
+  bool _isPerfectClear() {
+    for (int r = 0; r < gridRows; r++) {
+      if (!_grid.isEmpty(r, 0)) { // quick check is sufficient?
+         for (int c = 0; c < gridColumns; c++) {
+           if (!_grid.isEmpty(r, c)) return false;
+         }
+      }
+    }
+    return true;
+  }
+  
+  void _spawnGarbage() {
+    // Si el daño es de un ataque grande (>=4), alineado. Si no, aleatorio (un agujero por línea o un agujero por ataque, 
+    // pero para simplificar, usaremos un solo agujero por inserción si es <=3 o la misma columna si es grande).
+    // Puyo Puyo Tetris usa la misma columna para cada "bloque" de basura que llega.
+    int holeCol = Random().nextInt(gridColumns);
+    _grid.insertGarbageLines(pendingGarbage, holeCol);
+    pendingGarbage = 0;
+    
+    // Check if blocks overlapped the spawn area
+    if (activePiece != null && _grid.collides(activePiece!)) {
+      state = state.copyWith(status: GameStatus.gameOver);
+    }
   }
 
   void _spawnPiece() {

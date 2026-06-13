@@ -107,22 +107,55 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
               ),
               const SizedBox(height: 30),
               if (_connection.isHost)
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 40, vertical: 16),
-                  ),
-                  onPressed: _connection.startGame,
-                  child: const Text(
-                    'Iniciar Batalla',
-                    style: TextStyle(fontSize: 20),
-                  ),
+                Column(
+                  children: [
+                    const Text('Modo de Juego:', style: TextStyle(color: Colors.white70)),
+                    DropdownButton<String>(
+                      value: _connection.selectedMode,
+                      dropdownColor: Colors.grey[900],
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                      items: const [
+                        DropdownMenuItem(value: 'classic', child: Text('Clásico (Competitivo)')),
+                        DropdownMenuItem(value: 'arena', child: Text('Modo Arena')),
+                        DropdownMenuItem(value: 'power', child: Text('Modo Poderes')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _connection.selectedMode = val;
+                            _connection.sendMode(val);
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 16),
+                      ),
+                      onPressed: () => _connection.startGame(_connection.selectedMode),
+                      child: const Text(
+                        'Iniciar Batalla',
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ],
                 )
               else
-                const Text(
-                  'Esperando al anfitrión para iniciar...',
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
+                Column(
+                  children: [
+                    Text(
+                      'Modo elegido por el Host: ${_connection.selectedMode.toUpperCase()}',
+                      style: const TextStyle(color: Colors.yellowAccent, fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Esperando al anfitrión para iniciar...',
+                      style: TextStyle(color: Colors.white70, fontSize: 18),
+                    ),
+                  ],
                 ),
             ],
             

@@ -114,4 +114,14 @@ abstract class GameEngine {
   
   /// Toggle fast dropping mode (soft drop acceleration).
   void setFastDrop(bool enabled);
+
+  /// Callback when garbage is sent to the opponent.
+  void Function(int damage)? get onGarbageSent;
+  set onGarbageSent(void Function(int damage)? callback);
+
+  /// Pending garbage waiting to be inserted.
+  int get pendingGarbage;
+
+  /// Receive garbage from the opponent.
+  void receiveGarbage(int lines);
 }

@@ -23,6 +23,7 @@ class MultiplayerConnection extends ChangeNotifier {
   String? connectedEndpointId;
   String? connectedEndpointName;
   bool isHost = false;
+  String selectedMode = 'classic';
 
   // Discovered peers
   Map<String, String> discoveredPeers = {};
@@ -31,6 +32,7 @@ class MultiplayerConnection extends ChangeNotifier {
   void Function(int lines)? onGarbageReceived;
   void Function()? onOpponentGameOver;
   void Function()? onGameStart;
+  void Function(String mode)? onModeReceived;
 
   Future<void> requestPermissions() async {
     try {
@@ -139,11 +141,17 @@ class MultiplayerConnection extends ChangeNotifier {
     notifyListeners();
   }
 
-  void startGame() {
-    _sendMessage('START');
+  void startGame(String mode) {
+    selectedMode = mode;
+    _sendMessage('START:$mode');
     status = MultiplayerStatus.playing;
     notifyListeners();
     onGameStart?.call();
+  }
+
+  void sendMode(String mode) {
+    selectedMode = mode;
+    _sendMessage('MODE:$mode');
   }
 
   void sendGarbage(int lines) {
@@ -168,10 +176,17 @@ class MultiplayerConnection extends ChangeNotifier {
 
   void _handleMessage(String msg) {
     debugPrint("MULTIPLAYER: Recibido mensaje: $msg");
-    if (msg == 'START') {
+    if (msg.startsWith('START:')) {
+      final mode = msg.substring(6);
+      selectedMode = mode;
       status = MultiplayerStatus.playing;
       notifyListeners();
+      onModeReceived?.call(mode);
       onGameStart?.call();
+    } else if (msg.startsWith('MODE:')) {
+      final mode = msg.substring(5);
+      selectedMode = mode;
+      onModeReceived?.call(mode);
     } else if (msg.startsWith('GARBAGE:')) {
       final lines = int.tryParse(msg.split(':')[1]) ?? 0;
       onGarbageReceived?.call(lines);

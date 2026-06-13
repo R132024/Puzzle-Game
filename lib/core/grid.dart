@@ -89,6 +89,30 @@ class Grid {
   /// Clears the entire grid.
   void clear() => _cells.fillRange(0, _cells.length, null);
 
+  /// Shifts rows UP by [count], dropping the top [count] rows.
+  /// Fills the bottom [count] rows with garbage blocks (color index 8),
+  /// leaving a hole at [holeColumn].
+  void insertGarbageLines(int count, int holeColumn) {
+    if (count <= 0) return;
+    
+    // Shift rows UP (row 0 is top, so row 0 becomes row count)
+    // Actually, row 0 is top, so row 0 is overwritten by row `count`
+    for (int r = 0; r < rows - count; r++) {
+      copyRow(r + count, r);
+    }
+    
+    // Fill bottom rows with garbage
+    for (int r = rows - count; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (c == holeColumn) {
+          setCell(r, c, null); // Hole
+        } else {
+          setCell(r, c, 8); // 8 = Garbage block color
+        }
+      }
+    }
+  }
+
   // ─── Debug ────────────────────────────────────────────────────
 
   @override

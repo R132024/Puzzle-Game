@@ -126,4 +126,33 @@ class SandGrid {
 
   /// Access the raw current buffer for rendering.
   List<SandGrain?> get currentBuffer => _current;
+
+  /// Shifts rows UP by [count] blocks, dropping the top rows.
+  /// Fills the bottom rows with garbage blocks (color index 8),
+  /// leaving a hole at [holeColumn].
+  void insertGarbageLines(int count, int holeColumn) {
+    if (count <= 0) return;
+    int pixelRows = count * sandScale;
+    int holeColStart = holeColumn * sandScale;
+    
+    // Shift rows UP
+    for (int r = 0; r < rows - pixelRows; r++) {
+      for (int c = 0; c < cols; c++) {
+        setCell(r, c, getCell(r + pixelRows, c));
+      }
+    }
+    
+    final random = Random();
+    // Fill bottom rows with garbage
+    for (int r = rows - pixelRows; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (c >= holeColStart && c < holeColStart + sandScale) {
+          setCell(r, c, null); // Hole
+        } else {
+          final shadeIndex = random.nextInt(5);
+          setCell(r, c, SandGrain(8, shadeIndex)); // 8 = Garbage color
+        }
+      }
+    }
+  }
 }
