@@ -123,7 +123,7 @@ class P2PGameManager {
       // 2) PeerConnection + DataChannel (el host crea el canal).
       await _initPeerConnection();
       final channel = await _pc!.createDataChannel(
-        'beatblocks',
+        'beattris',
         RTCDataChannelInit()..ordered = true,
       );
       _registrarDataChannel(channel);

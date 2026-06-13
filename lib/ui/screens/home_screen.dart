@@ -9,7 +9,9 @@ import 'package:cubix_blast/core/mission_manager.dart';
 import 'package:cubix_blast/ui/widgets/radial_menu.dart';
 import 'package:cubix_blast/ui/widgets/particles_bg.dart';
 import 'package:cubix_blast/core/i18n.dart';
-
+import 'dart:async';
+import 'package:app_links/app_links.dart';
+import 'package:cubix_blast/online/logic/online_invite.dart';
 /// Home screen with animated mode selection menu and high scores.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +32,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   double _accumulatedDelta = 0;
   List<Map<String, dynamic>> _leaderboard = [];
 
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +53,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
 
     _loadRecords();
+    _initDeepLinks();
+  }
+
+  void _initDeepLinks() {
+    _appLinks = AppLinks();
+    // Escuchar enlaces cuando la app se abre por primera vez
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) _handleUri(uri);
+    });
+
+    // Escuchar enlaces cuando la app ya está abierta en segundo plano
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleUri(uri);
+    });
+  }
+
+  void _handleUri(Uri uri) {
+    final roomId = OnlineInvite.parseRoomId(uri);
+    if (roomId != null && mounted) {
+      Navigator.pushNamed(
+        context,
+        '/online_lobby',
+        arguments: {'autoJoinRoom': roomId},
+      );
+    }
   }
 
   Future<void> _loadRecords() async {
@@ -76,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _pulseController.dispose();
     _fadeController.dispose();
+    _linkSubscription?.cancel();
     super.dispose();
   }
 

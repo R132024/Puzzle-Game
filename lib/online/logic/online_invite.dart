@@ -7,7 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/i18n.dart';
 
 class OnlineInvite {
-  static const String baseUrl = 'https://beatblocks.app/join';
+  static const String baseUrl = 'https://beattris.app/join';
 
   /// Construye el link de invitación a una sala.
   static String buildLink(String roomId) => '$baseUrl?room=$roomId';
@@ -16,7 +16,7 @@ class OnlineInvite {
   static Future<void> compartir(BuildContext context, String roomId) async {
     final link = buildLink(roomId);
     final text = context.t('invite_text', params: {'link': link});
-    await Share.share(text, subject: 'BeatBlocks 1v1');
+    await Share.share(text, subject: 'BeatTris 1v1');
   }
 
   /// Extrae el parámetro `room` de un deep link entrante.
