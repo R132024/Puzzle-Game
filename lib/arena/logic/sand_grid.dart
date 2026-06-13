@@ -8,10 +8,13 @@ library;
 
 import 'package:cubix_blast/core/constants.dart';
 
+import 'dart:math';
+
 /// Represents a single sand grain.
 class SandGrain {
-  const SandGrain(this.colorIndex);
+  const SandGrain(this.colorIndex, this.shadeIndex);
   final int colorIndex;
+  final int shadeIndex; // Índice de la sombra (tono de color)
 }
 
 /// Double-buffered sand particle grid.
@@ -98,9 +101,12 @@ class SandGrid {
   /// [topRow] and [leftCol] are in sand-grid coordinates.
   /// Fills a [sandScale]×[sandScale] area with grains of [colorIndex].
   void placeBlock(int topRow, int leftCol, int colorIndex) {
-    final grain = SandGrain(colorIndex);
+    final random = Random();
     for (int r = 0; r < sandScale; r++) {
       for (int c = 0; c < sandScale; c++) {
+        // Genera un tono al azar entre 0 y 4
+        final shadeIndex = random.nextInt(5);
+        final grain = SandGrain(colorIndex, shadeIndex);
         setCell(topRow + r, leftCol + c, grain);
       }
     }

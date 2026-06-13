@@ -31,9 +31,9 @@ class ArenaEngine implements GameEngine {
   ArenaEngine({int? seed})
     : _factory = PieceFactory(
         seed: seed,
-        maxColors: 3,
-      ), // Limit to 3 colors for easier bridge making
-      _sandSim = SandSimulator(seed: seed),
+        maxColors: 5,
+      ), // Aumentamos a 5 colores para mayor dificultad en arena
+      _sandSim = SandSimulator(seed: seed, diagonalSlideProbability: 0.05), // 5% de probabilidad (ligeramente menos esparcimiento)
       _pieceGrid = Grid(gridRows, gridColumns),
       sandGrid = SandGrid();
 
@@ -96,7 +96,7 @@ class ArenaEngine implements GameEngine {
   static const double _sandStepInterval = 1.0 / 120.0; // 120 Hz
 
   double get _dropInterval =>
-      max(0.03, baseDropInterval - (state.level - 1) * 0.08);
+      max(0.02, baseDropInterval - (state.level - 1) * 0.15); // Aumentamos la velocidad de caída drásticamente por nivel
 
   // ─── Lifecycle ──────────────────────────────────────────────
 
@@ -171,10 +171,11 @@ class ArenaEngine implements GameEngine {
       hardDropTrails.remove(t);
     }
 
+    // Ejecuta SIEMPRE la fase de arena (físicas continuas)
+    _updateSandPhase(dt);
+
     if (activePiece != null) {
       _updatePiecePhase(dt);
-    } else {
-      _updateSandPhase(dt);
     }
   }
 
@@ -254,6 +255,9 @@ class ArenaEngine implements GameEngine {
     _isLocking = false;
     _lockTimer = 0;
     _sandTimer = 0;
+
+    // Spawn de la siguiente pieza inmediatamente (no esperamos a que la arena caiga)
+    _spawnPiece();
   }
 
   // ─── Sand Phase ─────────────────────────────────────────────
@@ -329,10 +333,9 @@ class ArenaEngine implements GameEngine {
       }
 
       if (!sandGrid.hasActivity) {
-        // Sand settled, no bridge → spawn next piece
+        // Sand settled, reset variables but DO NOT spawn piece (already spawned)
         _bridgeCheckTimer = 0;
         currentCombo = 0;
-        _spawnPiece();
       }
     }
   }
@@ -442,6 +445,10 @@ class ArenaEngine implements GameEngine {
 
     final currentShape = activePiece!.shape;
     final currentColor = activePiece!.colorIndex;
+
+    // Resetear el estado de bloqueo para que la nueva pieza no se bloquee inmediatamente
+    _isLocking = false;
+    _lockTimer = 0;
 
     if (heldPiece == null) {
       heldPiece = CubixPiece(

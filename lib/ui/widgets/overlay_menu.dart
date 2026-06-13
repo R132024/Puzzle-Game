@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import '../theme/app_theme.dart';
+import '../../core/i18n.dart';
 
 class OverlayMenu extends StatelessWidget {
   const OverlayMenu({
@@ -24,6 +25,15 @@ class OverlayMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: LocaleController.instance.localeNotifier,
+      builder: (context, locale, _) {
+        return _buildContent(context);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     return Positioned.fill(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -63,15 +73,15 @@ class OverlayMenu extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _ScoreItem(label: 'SCORE', value: score),
+                      _ScoreItem(label: context.t('score'), value: score),
                       const SizedBox(width: 40),
-                      _ScoreItem(label: 'BEST', value: bestScore),
+                      _ScoreItem(label: context.t('best'), value: bestScore),
                     ],
                   ),
                   const SizedBox(height: 40),
                   if (onResume != null) ...[
                     _MenuButton(
-                      label: 'RESUME',
+                      label: context.t('resume'),
                       icon: Icons.play_arrow,
                       onTap: onResume!,
                       color: const Color(0xFF00E676),
@@ -79,7 +89,7 @@ class OverlayMenu extends StatelessWidget {
                     const SizedBox(height: 16),
                   ] else ...[
                     _MenuButton(
-                      label: 'SHARE SCORE',
+                      label: context.t('share_score'),
                       icon: Icons.share,
                       onTap: () {
                         final text =
@@ -92,14 +102,14 @@ class OverlayMenu extends StatelessWidget {
                     const SizedBox(height: 16),
                   ],
                   _MenuButton(
-                    label: 'PLAY AGAIN',
+                    label: context.t('retry'),
                     icon: Icons.refresh,
                     onTap: onRestart,
                     color: const Color(0xFF00E5FF),
                   ),
                   const SizedBox(height: 16),
                   _MenuButton(
-                    label: 'MAIN MENU',
+                    label: context.t('home'),
                     icon: Icons.home,
                     onTap: onHome,
                     color: const Color(0xFFFF1744),

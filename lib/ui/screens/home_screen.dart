@@ -8,6 +8,7 @@ import 'package:cubix_blast/core/player_manager.dart';
 import 'package:cubix_blast/core/mission_manager.dart';
 import 'package:cubix_blast/ui/widgets/radial_menu.dart';
 import 'package:cubix_blast/ui/widgets/particles_bg.dart';
+import 'package:cubix_blast/core/i18n.dart';
 
 /// Home screen with animated mode selection menu and high scores.
 class HomeScreen extends StatefulWidget {
@@ -58,6 +59,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _handleDrag(double delta) {
+    _accumulatedDelta += delta;
+    if (_accumulatedDelta < -40) {
+      AudioService.instance.playBoton();
+      setState(() => _absoluteModeIndex++);
+      _accumulatedDelta = 0;
+    } else if (_accumulatedDelta > 40) {
+      AudioService.instance.playBoton();
+      setState(() => _absoluteModeIndex--);
+      _accumulatedDelta = 0;
+    }
+  }
+
   @override
   void dispose() {
     _pulseController.dispose();
@@ -67,52 +81,70 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: LocaleController.instance.localeNotifier,
+      builder: (context, locale, _) {
+        return _buildContent(context);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF060A14),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
+        titleSpacing: 16,
         title: ValueListenableBuilder<PlayerProfile>(
           valueListenable: PlayerManager.profileNotifier,
           builder: (context, profile, child) {
-            return Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF0F172A),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '${profile.level}',
-                    style: GoogleFonts.orbitron(
-                      color: const Color(0xFF00E5FF),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0F172A),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${profile.level}',
+                      style: GoogleFonts.orbitron(
+                        color: const Color(0xFF00E5FF),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'NIVEL ${profile.level}',
-                        style: GoogleFonts.orbitron(fontSize: 10, color: Colors.white70),
-                      ),
-                      const SizedBox(height: 4),
-                      LinearProgressIndicator(
-                        value: profile.progress,
-                        backgroundColor: Colors.white12,
-                        color: const Color(0xFF00E5FF),
-                        minHeight: 4,
-                      ),
-                    ],
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 100, // Fixed width for progress bar instead of Expanded
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'NIVEL ${profile.level}',
+                          style: GoogleFonts.orbitron(fontSize: 10, color: Colors.white70),
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: profile.progress,
+                          backgroundColor: Colors.white12,
+                          color: const Color(0xFF00E5FF),
+                          minHeight: 4,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-              ],
+                  const SizedBox(width: 16),
+                ],
+              ),
             );
           },
         ),
@@ -134,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   }
                 },
                 child: Container(
+                  constraints: const BoxConstraints(maxWidth: 140),
                   margin: const EdgeInsets.only(right: 16),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -151,44 +184,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       )
                     ] : [],
                   ),
-                  child: Row(
-                    children: [
-                      Text(
-                        isExternalMusicMode ? 'MODO MÚSICA ON' : 'MODO MÚSICA OFF',
-                        style: GoogleFonts.orbitron(
-                          color: isExternalMusicMode ? const Color(0xFFFF0055) : Colors.white54,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      children: [
+                        Text(
+                          isExternalMusicMode ? context.t('music_mode_on') : context.t('music_mode_off'),
+                          style: GoogleFonts.orbitron(
+                            color: isExternalMusicMode ? const Color(0xFFFF0055) : Colors.white54,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      // El "switch" visual tipo iOS
-                      Container(
-                        width: 36,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: isExternalMusicMode ? const Color(0xFFFF0055).withValues(alpha: 0.3) : Colors.white12,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: AnimatedAlign(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          alignment: isExternalMusicMode ? Alignment.centerRight : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.all(2),
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isExternalMusicMode ? const Color(0xFFFF0055) : Colors.white54,
-                              boxShadow: isExternalMusicMode ? [
-                                BoxShadow(color: const Color(0xFFFF0055), blurRadius: 5)
-                              ] : [],
+                        const SizedBox(width: 8),
+                        // El "switch" visual tipo iOS
+                        Container(
+                          width: 36,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: isExternalMusicMode ? const Color(0xFFFF0055).withValues(alpha: 0.3) : Colors.white12,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: AnimatedAlign(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            alignment: isExternalMusicMode ? Alignment.centerRight : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.all(2),
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isExternalMusicMode ? const Color(0xFFFF0055) : Colors.white54,
+                                boxShadow: isExternalMusicMode ? [
+                                  BoxShadow(color: const Color(0xFFFF0055), blurRadius: 5)
+                                ] : [],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -237,18 +273,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         behavior: HitTestBehavior.translucent,
         onVerticalDragUpdate: (details) {
           if (!_showModes) return;
-          _accumulatedDelta += details.delta.dy;
-          if (_accumulatedDelta < -40) {
-            AudioService.instance.playBoton();
-            setState(() => _absoluteModeIndex++);
-            _accumulatedDelta = 0;
-          } else if (_accumulatedDelta > 40) {
-            AudioService.instance.playBoton();
-            setState(() => _absoluteModeIndex--);
-            _accumulatedDelta = 0;
-          }
+          final isNarrow = MediaQuery.of(context).size.width < 600;
+          if (isNarrow) return; // En móvil usamos swipe horizontal
+          _handleDrag(details.delta.dy);
+        },
+        onHorizontalDragUpdate: (details) {
+          if (!_showModes) return;
+          final isNarrow = MediaQuery.of(context).size.width < 600;
+          if (!isNarrow) return; // En web/tablet usamos swipe vertical
+          _handleDrag(-details.delta.dx); // Si arrastra a la derecha (dx>0), wheel rota izquierda (index++)
         },
         onVerticalDragEnd: (_) {
+          _accumulatedDelta = 0;
+        },
+        onHorizontalDragEnd: (_) {
           _accumulatedDelta = 0;
         },
         child: Stack(
@@ -262,16 +300,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             SafeArea(
               child: FadeTransition(
                 opacity: _fadeAnim,
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: AnimatedSwitcher(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return AnimatedSwitcher(
                       duration: const Duration(milliseconds: 500),
                       child: _showModes
-                          ? _buildModeSelection()
-                          : _buildInitialBanner(),
-                    ),
-                  ),
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 32),
+                              child: _buildModeSelection(constraints),
+                            )
+                          : Center(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: _buildInitialBanner(),
+                              ),
+                            ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -289,7 +334,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _buildTitle(),
         const SizedBox(height: 12),
         Text(
-          'PUZZLE GAME',
+          context.t('app_subtitle'),
           style: GoogleFonts.orbitron(
             fontSize: 14,
             letterSpacing: 8,
@@ -319,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             shadowColor: const Color(0xFF00E5FF).withValues(alpha: 0.5),
           ),
           child: Text(
-            'JUGAR',
+            context.t('play'),
             style: GoogleFonts.orbitron(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -348,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               const Icon(Icons.palette, size: 20),
               const SizedBox(width: 12),
               Text(
-                'THEME SHOP',
+                context.t('theme_shop'),
                 style: GoogleFonts.orbitron(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -365,13 +410,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String _translateMode(String mode) {
     switch (mode) {
       case 'classic':
-        return 'Clásico';
+        return context.t('mode_classic');
       case 'arena':
-        return 'Arena';
+        return context.t('mode_arena');
       case 'power':
-        return 'Poderes';
+        return context.t('mode_power');
       case 'multiplayer':
-        return 'Multijugador';
+        return context.t('mode_multi');
+      case 'online':
+        return context.t('mode_online');
       default:
         return mode;
     }
@@ -393,7 +440,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               const Icon(Icons.star, color: Colors.amber, size: 20),
               const SizedBox(width: 8),
               Text(
-                'MISIONES DIARIAS',
+                context.t('daily_missions'),
                 style: GoogleFonts.orbitron(
                   fontSize: 14,
                   color: Colors.white,
@@ -469,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           Center(
             child: Text(
-              'TABLA DE PUNTUACIONES',
+              context.t('scoreboard'),
               style: GoogleFonts.orbitron(
                 fontSize: 16,
                 color: Colors.white70,
@@ -481,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           if (_leaderboard.isEmpty)
             Center(
               child: Text(
-                'Aún no hay puntuaciones',
+                context.t('no_scores'),
                 style: GoogleFonts.orbitron(
                   fontSize: 14,
                   color: Colors.white54,
@@ -492,12 +539,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             // Header
             Row(
               children: [
-                Expanded(flex: 2, child: _buildTableHeader('Nombre')),
-                Expanded(flex: 3, child: _buildTableHeader('Tipo de juego')),
-                Expanded(flex: 2, child: _buildTableHeader('Nivel')),
+                Expanded(flex: 2, child: _buildTableHeader(context.t('col_name'))),
+                Expanded(flex: 3, child: _buildTableHeader(context.t('col_mode'))),
+                Expanded(flex: 2, child: _buildTableHeader(context.t('col_level'))),
                 Expanded(
                   flex: 3,
-                  child: _buildTableHeader('Puntuación', alignRight: true),
+                  child: _buildTableHeader(context.t('col_score'), alignRight: true),
                 ),
               ],
             ),
@@ -580,22 +627,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildModeSelection() {
-    return SizedBox(
-      height: 500, // Altura fija para el área de selección
-      child: Row(
-        children: [
-          // Mitad Izquierda: Menú Radial
-          Expanded(
-            flex: 4,
-            child: Transform.translate(
-              offset: const Offset(-107, 0), // Ajustado para el nuevo centerOffset en radial_menu
-              child: SizedBox(
-                height: 500, // Altura del menú radial
-                width: double.infinity,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: RadialModeMenu(
+  Widget _buildModeSelection(BoxConstraints constraints) {
+    final isNarrow = constraints.maxWidth < 600;
+
+    if (isNarrow) {
+      return SizedBox(
+        height: constraints.maxHeight,
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: _buildRightPanel(isNarrow: true),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: (MediaQuery.of(context).size.height * 0.4).clamp(200.0, 300.0), 
+              width: double.infinity,
+              child: Align(
+                alignment: Alignment.center,
+                child: RadialModeMenu(
+                    isBottom: true,
                     selectedIndex: _absoluteModeIndex,
                     onSelected: (index) {
                       AudioService.instance.playBoton();
@@ -603,99 +659,134 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     },
                     onRandomPressed: () {
                       AudioService.instance.playBoton();
-                      // Elegimos un número aleatorio y calculamos a qué índice absoluto mapea
-                      // Queremos que el giro sea siempre hacia adelante, así que sumamos.
                       final currentMod = _absoluteModeIndex % 5;
                       final realCurrentMod = currentMod < 0 ? currentMod + 5 : currentMod;
-                      final targetMod = Random().nextInt(3); // 0, 1, 2
-                      
-                      // Calculamos cuántos pasos hacia adelante necesitamos para llegar a targetMod
+                      final targetMod = Random().nextInt(3);
                       int steps = targetMod - realCurrentMod;
-                      if (steps <= 0) steps += 5; // Siempre avanzamos girando
-                      
+                      if (steps <= 0) steps += 5;
                       setState(() => _absoluteModeIndex += steps);
                     },
-                    items: [
-                      RadialMenuItem(
-                        title: 'CLÁSICO',
-                        icon: Icons.grid_on,
-                        baseColor: const Color(0xFF00E5FF),
-                        highlightColor: const Color(0xFF00B8D4),
-                      ),
-                      RadialMenuItem(
-                        title: 'ARENA',
-                        icon: Icons.timer,
-                        baseColor: const Color(0xFFFF3D00),
-                        highlightColor: const Color(0xFFDD2C00),
-                      ),
-                      RadialMenuItem(
-                        title: 'PODERES',
-                        icon: Icons.bolt,
-                        baseColor: const Color(0xFFFFD600),
-                        highlightColor: const Color(0xFFFFAB00),
-                      ),
-                      RadialMenuItem(
-                        title: 'MULTI',
-                        icon: Icons.wifi_tethering,
-                        baseColor: const Color(0xFFD500F9),
-                        highlightColor: const Color(0xFFAA00FF),
-                      ),
-                      RadialMenuItem(
-                        title: 'AJUSTES',
-                        icon: Icons.settings,
-                        baseColor: Colors.grey,
-                        highlightColor: Colors.white,
-                      ),
-                    ],
+                    items: _getMenuItems(),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-          
-          // Mitad Derecha: Panel de Detalles
-          Expanded(
-            flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: _buildRightPanel(),
-            ),
+        );
+      }
+
+        // Diseño original para pantallas anchas
+        return SizedBox(
+          height: 500,
+          child: Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: Transform.translate(
+                  offset: const Offset(-107, 0),
+                  child: SizedBox(
+                    height: 500,
+                    width: double.infinity,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: RadialModeMenu(
+                        selectedIndex: _absoluteModeIndex,
+                        onSelected: (index) {
+                          AudioService.instance.playBoton();
+                          setState(() => _absoluteModeIndex = index);
+                        },
+                        onRandomPressed: () {
+                          AudioService.instance.playBoton();
+                          final currentMod = _absoluteModeIndex % 5;
+                          final realCurrentMod = currentMod < 0 ? currentMod + 5 : currentMod;
+                          final targetMod = Random().nextInt(3);
+                          int steps = targetMod - realCurrentMod;
+                          if (steps <= 0) steps += 5;
+                          setState(() => _absoluteModeIndex += steps);
+                        },
+                        items: _getMenuItems(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 5,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 16.0),
+                  child: _buildRightPanel(isNarrow: false),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
   }
 
-  Widget _buildRightPanel() {
+  List<RadialMenuItem> _getMenuItems() {
+    return [
+      RadialMenuItem(
+        title: context.t('mode_classic'),
+        icon: Icons.grid_on,
+        baseColor: const Color(0xFF00E5FF),
+        highlightColor: const Color(0xFF00B8D4),
+      ),
+      RadialMenuItem(
+        title: context.t('mode_arena'),
+        icon: Icons.timer,
+        baseColor: const Color(0xFFFF3D00),
+        highlightColor: const Color(0xFFDD2C00),
+      ),
+      RadialMenuItem(
+        title: context.t('mode_power'),
+        icon: Icons.bolt,
+        baseColor: const Color(0xFFFFD600),
+        highlightColor: const Color(0xFFFFAB00),
+      ),
+      RadialMenuItem(
+        title: context.t('mode_multi'),
+        icon: Icons.wifi_tethering,
+        baseColor: const Color(0xFFD500F9),
+        highlightColor: const Color(0xFFAA00FF),
+      ),
+      RadialMenuItem(
+        title: context.t('mode_settings'),
+        icon: Icons.settings,
+        baseColor: Colors.grey,
+        highlightColor: Colors.white,
+      ),
+    ];
+  }
+
+  Widget _buildRightPanel({bool isNarrow = false}) {
     // Definimos información estática para cada modo
     final modesInfo = [
       {
-        'title': 'MODO CLÁSICO',
-        'desc': 'El rompecabezas original. Limpia líneas sin presión de tiempo.',
+        'title': context.t('title_classic'),
+        'desc': context.t('desc_classic'),
         'color': const Color(0xFF00E5FF),
         'route': '/classic',
       },
       {
-        'title': 'MODO ARENA',
-        'desc': '¡Compite contra el reloj! Gana puntos extra por combos rápidos.',
+        'title': context.t('title_arena'),
+        'desc': context.t('desc_arena'),
         'color': const Color(0xFFFF3D00),
         'route': '/arena',
       },
       {
-        'title': 'CON PODERES',
-        'desc': 'Usa habilidades especiales como Láser y Bomba para destruir bloques.',
+        'title': context.t('title_power'),
+        'desc': context.t('desc_power'),
         'color': const Color(0xFFFFD600),
         'route': '/power',
       },
       {
-        'title': 'MULTIJUGADOR',
-        'desc': 'Desafía a tus amigos en partidas locales y demuestra quién manda.',
+        'title': context.t('title_multi'),
+        'desc': context.t('desc_multi'),
         'color': const Color(0xFFD500F9),
         'route': '/multiplayer_lobby',
       },
       {
-        'title': 'CONFIGURACIÓN',
-        'desc': 'Ajusta el volumen de la música y los efectos de sonido a tu gusto.',
+        'title': context.t('title_settings'),
+        'desc': '',
         'color': Colors.grey,
         'route': '',
       },
@@ -712,6 +803,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 300),
       child: Container(
         key: ValueKey(modIndex),
+        height: isNarrow ? 380 : 460,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: const Color(0xFF0F172A).withValues(alpha: 0.8),
@@ -725,13 +817,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              info['title'] as String,
-              textAlign: TextAlign.center,
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                info['title'] as String,
+                textAlign: TextAlign.center,
               style: GoogleFonts.orbitron(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -740,22 +836,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 shadows: [Shadow(color: color, blurRadius: 10)],
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              info['desc'] as String,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.orbitron(
-                fontSize: 12,
-                color: Colors.white70,
-                height: 1.5,
-              ),
             ),
-            const SizedBox(height: 32),
+            if ((info['desc'] as String).isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                info['desc'] as String,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.orbitron(
+                  fontSize: 12,
+                  color: Colors.white70,
+                  height: 1.5,
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
             
             // Selector de Nivel o Sliders de Audio
             if (modIndex == 4) ...[
               Text(
-                'MÚSICA',
+                context.t('music'),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.orbitron(
                   fontSize: 12,
@@ -772,7 +871,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 16),
               Text(
-                'EFECTOS',
+                context.t('sfx'),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.orbitron(
                   fontSize: 12,
@@ -788,9 +887,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   onChangeEnd: (v) => AudioService.instance.playBoton(),
                 ),
               ),
+              const SizedBox(height: 16),
+              _buildLanguageSelector(color),
+            ] else if (modIndex == 3) ...[
+              // Panel Multijugador: acceso al modo Online 1v1 (Firebase + WebRTC)
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  Navigator.pushNamed(context, '/online_lobby');
+                },
+                icon: const Icon(Icons.public, color: Color(0xFFD500F9)),
+                label: Text(
+                  context.t('title_online'),
+                  style: GoogleFonts.orbitron(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFD500F9),
+                    letterSpacing: 1,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFD500F9), width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
             ] else if (modIndex != 3) ...[
               Text(
-                'NIVEL INICIAL',
+                context.t('initial_level'),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.orbitron(
                   fontSize: 12,
@@ -836,9 +963,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ] else ...[
                const SizedBox(height: 60), // Espacio para igualar la altura si no hay nivel
             ],
-            
-            const Spacer(),
-            
+
+            // FIX: Antes había un `Spacer()` aquí. Este panel vive dentro de un
+            // SingleChildScrollView (altura ilimitada), y `Spacer`/`Expanded`
+            // exigen una altura ACOTADA. Eso disparaba la aserción
+            // 'debugNeedsLayout' (pantalla roja). Se reemplaza por espacio fijo.
+            const SizedBox(height: 24),
+
             // Botón Jugar
             if (modIndex != 4) ...[
               ElevatedButton(
@@ -866,7 +997,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     const Icon(Icons.play_arrow, size: 28),
                     const SizedBox(width: 8),
                     Text(
-                      'JUGAR',
+                      context.t('play'),
                       style: GoogleFonts.orbitron(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -886,7 +1017,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 setState(() => _showModes = false);
               },
               child: Text(
-                'VOLVER AL INICIO',
+                context.t('back_home'),
                 style: GoogleFonts.orbitron(
                   color: Colors.white54,
                   fontSize: 12,
@@ -895,7 +1026,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildLanguageSelector(Color color) {
+    return Column(
+      children: [
+        Text(
+          context.t('language'),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.orbitron(fontSize: 12, color: Colors.white54),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: 200,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B1220),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: LocaleController.instance.code,
+              dropdownColor: const Color(0xFF0B1220),
+              icon: Icon(Icons.arrow_drop_down, color: color),
+              isExpanded: true,
+              items: LocaleController.supported.map((code) {
+                return DropdownMenuItem<String>(
+                  value: code,
+                  child: Row(
+                    children: [
+                      Text(LocaleController.flag(code), style: const TextStyle(fontSize: 18)),
+                      const SizedBox(width: 8),
+                      Text(
+                        LocaleController.displayName(code),
+                        style: GoogleFonts.orbitron(
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (String? newCode) {
+                if (newCode != null) {
+                  AudioService.instance.playBoton();
+                  LocaleController.instance.setLocale(newCode);
+                }
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -969,7 +1156,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '¡MODO MÚSICA ACTIVADO!',
+                    context.t('music_mode_title'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.orbitron(
                       color: const Color(0xFFFF0055),
@@ -982,7 +1169,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Disfruta tu propia música de forma envolvente. ¡El fondo del juego reaccionará y vibrará dinámicamente al ritmo de tus canciones favoritas!',
+                    context.t('music_mode_body'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.orbitron(
                       color: Colors.white,
@@ -1007,7 +1194,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       shadowColor: const Color(0xFFFF0055),
                     ),
                     child: Text(
-                      '¡ENTENDIDO!',
+                      context.t('got_it'),
                       style: GoogleFonts.orbitron(
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/game_engine.dart';
 import '../../core/score_manager.dart';
+import '../../core/i18n.dart';
 import 'dart:ui';
 
 /// Displays score, level, and lines cleared in a glowing side panel.
@@ -39,19 +40,19 @@ class ScoreBoard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _StatItem(label: 'BEST', value: highScore.toString()),
+                _StatItem(label: context.t('best'), value: highScore.toString()),
                 const SizedBox(width: 8),
-                _StatItem(label: 'SCORE', value: state.score.toString()),
+                _StatItem(label: context.t('score'), value: state.score.toString()),
                 const SizedBox(width: 8),
-                _StatItem(label: 'LVL', value: state.level.toString()),
+                _StatItem(label: context.t('lvl'), value: state.level.toString()),
                 const SizedBox(width: 8),
-                _StatItem(label: 'LINES', value: state.linesCleared.toString()),
+                _StatItem(label: context.t('lines'), value: state.linesCleared.toString()),
                 const SizedBox(width: 8),
                 ValueListenableBuilder<int>(
                   valueListenable: ScoreManager.coinsNotifier,
                   builder: (context, coins, child) {
                     return _StatItem(
-                      label: 'COINS',
+                      label: context.t('coins'),
                       value: coins.toString(),
                       valueColor: Colors.amber,
                     );

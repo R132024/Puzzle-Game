@@ -1,3 +1,4 @@
+import 'package:cubix_blast/core/i18n.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -105,6 +106,15 @@ class _ClassicScreenState extends State<ClassicScreen>
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: LocaleController.instance.localeNotifier,
+      builder: (context, locale, _) {
+        return _buildContent(context);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF060A14),
       resizeToAvoidBottomInset: false,
@@ -190,7 +200,8 @@ class _ClassicScreenState extends State<ClassicScreen>
                 },
               ),
             ),
-            Column(
+            SafeArea(
+              child: Column(
               children: [
                 ValueListenableBuilder<int>(
                   valueListenable: _frameNotifier,
@@ -278,6 +289,7 @@ class _ClassicScreenState extends State<ClassicScreen>
                 const SizedBox(height: 16),
               ],
             ),
+            ),
             ValueListenableBuilder<int>(
               valueListenable: _frameNotifier,
               builder: (context, frame, child) {
@@ -291,7 +303,7 @@ class _ClassicScreenState extends State<ClassicScreen>
                   );
                 } else if (_engine.state.status == GameStatus.paused) {
                   return OverlayMenu(
-                    title: 'PAUSED',
+                    title: context.t('paused'),
                     score: _engine.state.score,
                     bestScore: _engine.highScore,
                     onResume: _engine.togglePause,

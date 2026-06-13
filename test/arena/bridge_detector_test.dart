@@ -15,8 +15,8 @@ void main() {
     test('returns none when no bridge connects left to right', () {
       final grid = SandGrid(cols: 5, rows: 5);
       // Place grains only on left wall
-      grid.setCell(4, 0, const SandGrain(0));
-      grid.setCell(3, 0, const SandGrain(0));
+      grid.setCell(4, 0, const SandGrain(0, 0));
+      grid.setCell(3, 0, const SandGrain(0, 0));
 
       final result = detector.detect(grid);
       expect(result.found, false);
@@ -26,7 +26,7 @@ void main() {
       final grid = SandGrid(cols: 5, rows: 5);
       // Create a horizontal bridge of color 0 across row 4
       for (int c = 0; c < 5; c++) {
-        grid.setCell(4, c, const SandGrain(0));
+        grid.setCell(4, c, const SandGrain(0, 0));
       }
 
       final result = detector.detect(grid);
@@ -38,14 +38,14 @@ void main() {
     test('detects a zigzag bridge', () {
       final grid = SandGrid(cols: 5, rows: 5);
       // Create a zigzag path of color 1
-      grid.setCell(4, 0, const SandGrain(1));
-      grid.setCell(3, 0, const SandGrain(1));
-      grid.setCell(3, 1, const SandGrain(1));
-      grid.setCell(3, 2, const SandGrain(1));
-      grid.setCell(4, 2, const SandGrain(1));
-      grid.setCell(4, 3, const SandGrain(1));
-      grid.setCell(3, 3, const SandGrain(1));
-      grid.setCell(3, 4, const SandGrain(1));
+      grid.setCell(4, 0, const SandGrain(1, 0));
+      grid.setCell(3, 0, const SandGrain(1, 0));
+      grid.setCell(3, 1, const SandGrain(1, 0));
+      grid.setCell(3, 2, const SandGrain(1, 0));
+      grid.setCell(4, 2, const SandGrain(1, 0));
+      grid.setCell(4, 3, const SandGrain(1, 0));
+      grid.setCell(3, 3, const SandGrain(1, 0));
+      grid.setCell(3, 4, const SandGrain(1, 0));
 
       final result = detector.detect(grid);
       expect(result.found, true);
@@ -55,11 +55,11 @@ void main() {
     test('does not bridge different colors', () {
       final grid = SandGrid(cols: 5, rows: 5);
       // Color 0 on left, color 1 in middle, color 0 on right
-      grid.setCell(4, 0, const SandGrain(0));
-      grid.setCell(4, 1, const SandGrain(0));
-      grid.setCell(4, 2, const SandGrain(1)); // Different color breaks bridge
-      grid.setCell(4, 3, const SandGrain(0));
-      grid.setCell(4, 4, const SandGrain(0));
+      grid.setCell(4, 0, const SandGrain(0, 0));
+      grid.setCell(4, 1, const SandGrain(0, 0));
+      grid.setCell(4, 2, const SandGrain(1, 0)); // Different color breaks bridge
+      grid.setCell(4, 3, const SandGrain(0, 0));
+      grid.setCell(4, 4, const SandGrain(0, 0));
 
       final result = detector.detect(grid);
       expect(result.found, false);
@@ -67,11 +67,11 @@ void main() {
 
     test('does not detect bridge when there is a hole (gap)', () {
       final grid = SandGrid(cols: 5, rows: 5);
-      grid.setCell(4, 0, const SandGrain(0));
-      grid.setCell(4, 1, const SandGrain(0));
+      grid.setCell(4, 0, const SandGrain(0, 0));
+      grid.setCell(4, 1, const SandGrain(0, 0));
       // Hole at col 2
-      grid.setCell(4, 3, const SandGrain(0));
-      grid.setCell(4, 4, const SandGrain(0));
+      grid.setCell(4, 3, const SandGrain(0, 0));
+      grid.setCell(4, 4, const SandGrain(0, 0));
 
       final result = detector.detect(grid);
       expect(result.found, false);
@@ -82,7 +82,7 @@ void main() {
       // Fill entire grid with same color
       for (int r = 0; r < 3; r++) {
         for (int c = 0; c < 3; c++) {
-          grid.setCell(r, c, const SandGrain(2));
+          grid.setCell(r, c, const SandGrain(2, 0));
         }
       }
 

@@ -35,13 +35,13 @@ class GameThemes {
         Color(0xFFFF1744),
       ],
       pieceColors: [
-        Color(0xFF00E5FF), // I - Cyan
-        Color(0xFFFFD600), // O - Yellow
-        Color(0xFFAA00FF), // T - Purple
-        Color(0xFF00E676), // S - Green
-        Color(0xFFFF1744), // Z - Red
-        Color(0xFF2979FF), // J - Blue
-        Color(0xFFFF9100), // L - Orange
+        Color(0xFF00E5FF), // I - Cyan (sin cambios, no especificada)
+        Color(0xFFEEDDBC), // O - Cuadrado crema
+        Color(0xFF7700EE), // T - Morada
+        Color(0xFF00AA77), // S - Verde
+        Color(0xFF990066), // Z - Fucsia
+        Color(0xFF0077AA), // J - Azul/turquesa
+        Color(0xFFFF5500), // L - Naranja
       ],
     ),
     vaporwaveId: const ThemePalette(

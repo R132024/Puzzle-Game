@@ -5,6 +5,7 @@ import 'package:cubix_blast/core/high_score_store.dart';
 import 'package:cubix_blast/core/player_manager.dart';
 import 'package:cubix_blast/core/mission_manager.dart';
 import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/core/i18n.dart';
 
 class GameOverModal extends StatefulWidget {
   const GameOverModal({
@@ -88,8 +89,11 @@ class _GameOverModalState extends State<GameOverModal> {
             backgroundColor: const Color(0xFF0F172A),
             content: Text(
               leveledUp
-                  ? '¡Subiste al nivel ${PlayerManager.profileNotifier.value.level}! (+$xpGained XP)'
-                  : 'Ganaste +$xpGained XP. ${completed.isNotEmpty ? "¡Completaste ${completed.length} misión(es)!" : ""}',
+                  ? context.t('xp_level_up', params: {
+                      'lvl': PlayerManager.profileNotifier.value.level.toString(),
+                      'xp': xpGained.toString(),
+                    })
+                  : context.t('xp_gained', params: {'xp': xpGained.toString()}),
               style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
             ),
             duration: const Duration(seconds: 4),
@@ -114,6 +118,15 @@ class _GameOverModalState extends State<GameOverModal> {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: LocaleController.instance.localeNotifier,
+      builder: (context, locale, _) {
+        return _buildContent(context);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final isGameOver = widget.state.status == GameStatus.gameOver;
 
     return Positioned.fill(
@@ -157,7 +170,7 @@ class _GameOverModalState extends State<GameOverModal> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            isGameOver ? (widget.titleOverride ?? 'GAME OVER') : 'PAUSED',
+                            isGameOver ? (widget.titleOverride ?? context.t('game_over')) : context.t('paused'),
                             style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -168,7 +181,7 @@ class _GameOverModalState extends State<GameOverModal> {
                           const SizedBox(height: 24),
                           if (isGameOver) ...[
                             Text(
-                              'SCORE: ${widget.state.score}',
+                              '${context.t('score')}: ${widget.state.score}',
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -177,7 +190,7 @@ class _GameOverModalState extends State<GameOverModal> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'TIME: ${_formatTime(widget.state.elapsedSeconds)}',
+                              '${context.t('time')}: ${_formatTime(widget.state.elapsedSeconds)}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.white70,
@@ -198,9 +211,9 @@ class _GameOverModalState extends State<GameOverModal> {
                                 ),
                               ),
                             if (_saved)
-                              const Text(
-                                'Puntuación guardada',
-                                style: TextStyle(
+                              Text(
+                                context.t('score_saved'),
+                                style: const TextStyle(
                                   color: Color(0xFF00E676),
                                   fontSize: 14,
                                 ),
@@ -215,12 +228,12 @@ class _GameOverModalState extends State<GameOverModal> {
                               if (isGameOver)
                                 ElevatedButton(
                                   onPressed: widget.onRetry,
-                                  child: const Text('REINTENTAR'),
+                                  child: Text(context.t('retry')),
                                 )
                               else
                                 ElevatedButton(
                                   onPressed: widget.onResume,
-                                  child: const Text('REANUDAR'),
+                                  child: Text(context.t('resume')),
                                 ),
                               OutlinedButton(
                                 onPressed: widget.onMenu,
@@ -228,7 +241,7 @@ class _GameOverModalState extends State<GameOverModal> {
                                   foregroundColor: Colors.white70,
                                   side: const BorderSide(color: Colors.white30),
                                 ),
-                                child: const Text('MENÚ'),
+                                child: Text(context.t('menu')),
                               ),
                             ],
                           ),

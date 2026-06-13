@@ -10,9 +10,10 @@ import 'dart:math';
 import 'sand_grid.dart';
 
 class SandSimulator {
-  SandSimulator({int? seed}) : _rng = Random(seed);
+  SandSimulator({int? seed, this.diagonalSlideProbability = 0.3}) : _rng = Random(seed);
 
   final Random _rng;
+  final double diagonalSlideProbability;
   int _frameCount = 0;
 
   /// Run one simulation step on the grid.
@@ -48,7 +49,13 @@ class SandSimulator {
           continue;
         }
 
-        // Try diagonal: randomize left/right priority
+        // Aplicar fricción / ángulo de reposo:
+        // Si el número aleatorio es mayor que la probabilidad, la partícula se detiene en este frame.
+        if (_rng.nextDouble() > diagonalSlideProbability) {
+          continue;
+        }
+
+        // Try diagonal: randomize left/right priority (50/50)
         final tryLeftFirst = _rng.nextBool();
         final d1 = tryLeftFirst ? -1 : 1;
         final d2 = tryLeftFirst ? 1 : -1;

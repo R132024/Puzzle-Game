@@ -7,9 +7,9 @@ const int gridRows = 20;
 
 // ─── Arena Sand Sub-pixel Resolution ────────────────────────────
 /// Each tetromino cell explodes into [sandScale]×[sandScale] grains.
-const int sandScale = 6;
-const int sandColumns = gridColumns * sandScale; // 40
-const int sandRows = gridRows * sandScale; // 80
+const int sandScale = 8;
+const int sandColumns = gridColumns * sandScale; // 80
+const int sandRows = gridRows * sandScale; // 160
 
 // ─── Timing ─────────────────────────────────────────────────────
 /// Fixed physics update interval in seconds (60 UPS).
@@ -44,10 +44,10 @@ const int pieceColorCount = 7;
 /// Color index → ARGB hex (Material-inspired neon palette).
 const List<int> pieceColors = [
   0xFF00E5FF, // Cyan      (I)
-  0xFFFFD600, // Yellow    (O)
-  0xFFAA00FF, // Purple    (T)
-  0xFF00E676, // Green     (S)
-  0xFFFF1744, // Red       (Z)
-  0xFF2979FF, // Blue      (J)
-  0xFFFF9100, // Orange    (L)
+  0xFFEEDDBC, // Crema     (O)
+  0xFF7700EE, // Morada    (T)
+  0xFF00AA77, // Verde     (S)
+  0xFF990066, // Fucsia    (Z)
+  0xFF0077AA, // Azul      (J)
+  0xFFFF5500, // Naranja   (L)
 ];

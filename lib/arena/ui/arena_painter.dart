@@ -54,16 +54,33 @@ class ArenaPainter extends CustomPainter {
     }
   }
 
+  Color _shadeColor(Color c, double factor) {
+    return Color.fromARGB(
+      c.alpha,
+      (c.red * factor).clamp(0, 255).toInt(),
+      (c.green * factor).clamp(0, 255).toInt(),
+      (c.blue * factor).clamp(0, 255).toInt(),
+    );
+  }
+
   void _drawSandGrains(Canvas canvas, double grainW, double grainH) {
     final buffer = engine.sandGrid.currentBuffer;
     final cols = engine.sandGrid.cols;
     
     final colorList = GameThemes.getTheme(
-      ScoreManager.currentTheme,
+      GameThemes.classicId,
     ).pieceColors;
     
     // Massive GC optimization: Pre-allocate Paint objects outside the 60fps loop
-    final paints = colorList.map((c) => Paint()..color = c).toList();
+    final paints = colorList.map((c) {
+      return [
+        Paint()..color = _shadeColor(c, 0.7),
+        Paint()..color = _shadeColor(c, 0.85),
+        Paint()..color = c,
+        Paint()..color = _shadeColor(c, 1.15),
+        Paint()..color = _shadeColor(c, 1.3),
+      ];
+    }).toList();
 
     for (int i = 0; i < buffer.length; i++) {
       final grain = buffer[i];
@@ -78,7 +95,8 @@ class ArenaPainter extends CustomPainter {
         grainH + 0.5,
       );
 
-      canvas.drawRect(rect, paints[grain.colorIndex % paints.length]);
+      final colorPaints = paints[grain.colorIndex % paints.length];
+      canvas.drawRect(rect, colorPaints[grain.shadeIndex % colorPaints.length]);
     }
   }
 
@@ -87,7 +105,7 @@ class ArenaPainter extends CustomPainter {
     if (piece == null) return;
 
     final colorList = GameThemes.getTheme(
-      ScoreManager.currentTheme,
+      GameThemes.classicId,
     ).pieceColors;
     final color = colorList[piece.colorIndex % colorList.length];
     
@@ -121,7 +139,7 @@ class ArenaPainter extends CustomPainter {
       final flashPaint = Paint()
         ..color = Colors.white.withValues(alpha: progress);
       final colorList = GameThemes.getTheme(
-        ScoreManager.currentTheme,
+        GameThemes.classicId,
       ).pieceColors;
       final paint = Paint()
         ..color = colorList[anim.colorIndex % colorList.length].withValues(
@@ -153,7 +171,7 @@ class ArenaPainter extends CustomPainter {
       if (progress <= 0) continue;
 
       final colorList = GameThemes.getTheme(
-        ScoreManager.currentTheme,
+        GameThemes.classicId,
       ).pieceColors;
       final paint = Paint()
         ..color = colorList[trail.colorIndex % colorList.length].withValues(

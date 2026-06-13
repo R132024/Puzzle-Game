@@ -1,3 +1,4 @@
+import 'package:cubix_blast/core/i18n.dart';
 import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -103,6 +104,15 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: LocaleController.instance.localeNotifier,
+      builder: (context, locale, _) {
+        return _buildContent(context);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF060A14),
       resizeToAvoidBottomInset: false,
@@ -171,7 +181,7 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
         final double canvasW = (maxH * 0.5).clamp(0.0, maxW * 0.95).toDouble();
         final canvasH = canvasW * 2; // 10:20 ratio
 
-        final theme = GameThemes.getTheme(ScoreManager.currentTheme);
+        final theme = GameThemes.getTheme(GameThemes.classicId);
         final currentColor = Theme.of(context).colorScheme.primary;
         final tempo = 1.0 + (_engine.state.level * 0.15);
 
@@ -188,7 +198,8 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
                 },
               ),
             ),
-            Column(
+            SafeArea(
+              child: Column(
               children: [
                 ValueListenableBuilder<int>(
                   valueListenable: _frameNotifier,
@@ -276,6 +287,7 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
                 const SizedBox(height: 16),
               ],
             ),
+            ),
             ValueListenableBuilder<int>(
               valueListenable: _frameNotifier,
               builder: (context, frame, child) {
@@ -289,7 +301,7 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
                   );
                 } else if (_engine.state.status == GameStatus.paused) {
                   return OverlayMenu(
-                    title: 'PAUSED',
+                    title: context.t('paused'),
                     score: _engine.state.score,
                     bestScore: _engine.highScore,
                     onResume: _engine.togglePause,

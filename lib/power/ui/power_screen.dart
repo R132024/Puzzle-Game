@@ -1,3 +1,4 @@
+import 'package:cubix_blast/core/i18n.dart';
 import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -102,6 +103,15 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: LocaleController.instance.localeNotifier,
+      builder: (context, locale, _) {
+        return _buildContent(context);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF060A14),
       resizeToAvoidBottomInset: false,
@@ -182,7 +192,8 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
                 tempoMultiplier: tempo,
               ),
             ),
-            Column(
+            SafeArea(
+              child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -262,6 +273,7 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
                 const SizedBox(height: 16),
               ],
             ),
+            ),
             if (_engine.state.status == GameStatus.gameOver)
               GameOverModal(
                 state: _engine.state,
@@ -272,7 +284,7 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
               )
             else if (_engine.state.status == GameStatus.paused)
               OverlayMenu(
-                title: 'PAUSED',
+                title: context.t('paused'),
                 score: _engine.state.score,
                 bestScore: _engine.highScore,
                 onResume: _engine.togglePause,

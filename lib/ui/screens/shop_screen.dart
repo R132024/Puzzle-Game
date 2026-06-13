@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cubix_blast/core/i18n.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
@@ -17,6 +18,15 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: LocaleController.instance.localeNotifier,
+      builder: (context, locale, _) {
+        return _buildContent(context);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final themes = GameThemes.themes.values.toList();
     final coins = ScoreManager.coins;
 
@@ -26,7 +36,7 @@ class _ShopScreenState extends State<ShopScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'THEME SHOP',
+          context.t('theme_shop'),
           style: GoogleFonts.orbitron(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -88,9 +98,9 @@ class _ShopScreenState extends State<ShopScreen> {
                       ),
                       const SizedBox(height: 8),
                       if (isSelected)
-                        const Text(
-                          'SELECTED',
-                          style: TextStyle(
+                        Text(
+                          context.t('selected'),
+                          style: const TextStyle(
                             color: Color(0xFF00E5FF),
                             fontWeight: FontWeight.bold,
                           ),
@@ -139,7 +149,7 @@ class _ShopScreenState extends State<ShopScreen> {
                                 : Colors.grey),
                       foregroundColor: isUnlocked ? Colors.white : Colors.black,
                     ),
-                    child: Text(isUnlocked ? 'SELECT' : 'BUY'),
+                    child: Text(isUnlocked ? context.t('select') : context.t('buy')),
                   ),
               ],
             ),

@@ -12,7 +12,7 @@ void main() {
 
     test('grain falls down when space below is empty', () {
       final grid = SandGrid(cols: 5, rows: 5);
-      grid.setCell(0, 2, const SandGrain(0));
+      grid.setCell(0, 2, const SandGrain(0, 0));
 
       sim.step(grid);
 
@@ -23,7 +23,7 @@ void main() {
 
     test('grain stays when at bottom', () {
       final grid = SandGrid(cols: 5, rows: 5);
-      grid.setCell(4, 2, const SandGrain(1));
+      grid.setCell(4, 2, const SandGrain(1, 0));
 
       sim.step(grid);
 
@@ -34,8 +34,8 @@ void main() {
     test('grain slides diagonally when blocked below', () {
       final grid = SandGrid(cols: 5, rows: 5);
       // Place grain above a blocker at the bottom
-      grid.setCell(3, 2, const SandGrain(0));
-      grid.setCell(4, 2, const SandGrain(1)); // Blocker at very bottom
+      grid.setCell(3, 2, const SandGrain(0, 0));
+      grid.setCell(4, 2, const SandGrain(1, 0)); // Blocker at very bottom
 
       sim.step(grid);
 
@@ -48,7 +48,7 @@ void main() {
 
     test('step returns true when grains move', () {
       final grid = SandGrid(cols: 5, rows: 5);
-      grid.setCell(0, 2, const SandGrain(0));
+      grid.setCell(0, 2, const SandGrain(0, 0));
 
       final moved = sim.step(grid);
       expect(moved, true);
@@ -56,7 +56,7 @@ void main() {
 
     test('step returns false when no grains move', () {
       final grid = SandGrid(cols: 5, rows: 5);
-      grid.setCell(4, 2, const SandGrain(0));
+      grid.setCell(4, 2, const SandGrain(0, 0));
 
       final moved = sim.step(grid);
       expect(moved, false);
@@ -65,9 +65,9 @@ void main() {
     test('multiple grains settle over time', () {
       final grid = SandGrid(cols: 3, rows: 10);
       // Place 3 grains at the top
-      grid.setCell(0, 0, const SandGrain(0));
-      grid.setCell(0, 1, const SandGrain(1));
-      grid.setCell(0, 2, const SandGrain(2));
+      grid.setCell(0, 0, const SandGrain(0, 0));
+      grid.setCell(0, 1, const SandGrain(1, 0));
+      grid.setCell(0, 2, const SandGrain(2, 0));
 
       // Run enough steps for them to settle at the bottom
       for (int i = 0; i < 20; i++) {

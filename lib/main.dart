@@ -15,6 +15,10 @@ import 'package:cubix_blast/multiplayer/ui/multiplayer_screen.dart';
 
 import 'package:cubix_blast/core/player_manager.dart';
 import 'package:cubix_blast/core/mission_manager.dart';
+import 'package:cubix_blast/core/i18n.dart';
+import 'package:cubix_blast/online/ui/online_lobby_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cubix_blast/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +27,16 @@ void main() async {
   await ScoreManager.init();
   await PlayerManager.init();
   await MissionManager.init();
+  await LocaleController.instance.init();
+  // Firebase es necesario solo para el modo Online (signaling). Si no está
+  // configurado aún, la app sigue funcionando en los modos offline.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase no inicializado (modo offline): $e');
+  }
   MusicService.instance.init(); // non-blocking request
   // AudioService initializes internally on first access
   AudioService.instance.playBgm('audio/puzzlemenu.mp3');
@@ -35,20 +49,30 @@ class CubixBlastApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'CubixBlast: Puzzle Game',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme(const Color(0xFF00E5FF)),
-      initialRoute: '/',
-      routes: {
-        '/': (_) => const HomeScreen(),
-        '/classic': (_) => const ClassicScreen(),
-        '/arena': (_) => const ArenaScreen(),
-        '/power': (_) => const PowerScreen(),
-        '/multiplayer_lobby': (_) => const MultiplayerLobbyScreen(),
-        '/multiplayer_match': (_) => const MultiplayerScreen(),
-        '/shop': (_) => const ShopScreen(),
-      },
+    return LocaleScope(
+      builder: (context) => MaterialApp(
+        title: 'CubixBlast: Puzzle Game',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme(const Color(0xFF00E5FF)),
+        initialRoute: '/',
+        routes: {
+          '/': (_) => const HomeScreen(),
+          '/classic': (_) => const ClassicScreen(),
+          '/arena': (_) => const ArenaScreen(),
+          '/power': (_) => const PowerScreen(),
+          '/multiplayer_lobby': (_) => const MultiplayerLobbyScreen(),
+          '/multiplayer_match': (_) => const MultiplayerScreen(),
+          '/online_lobby': (ctx) {
+            final args = ModalRoute.of(ctx)?.settings.arguments;
+            String? autoRoom;
+            if (args is Map && args['autoJoinRoom'] is String) {
+              autoRoom = args['autoJoinRoom'] as String;
+            }
+            return OnlineLobbyScreen(autoJoinRoom: autoRoom);
+          },
+          '/shop': (_) => const ShopScreen(),
+        },
+      ),
     );
   }
 }
