@@ -100,6 +100,9 @@ abstract class GameEngine {
   /// Start or restart the game from scratch.
   void reset({int initialLevel = 1});
 
+  /// Forces the game to end (used when opponent wins in multiplayer).
+  void forceGameOver();
+
   /// Toggle pause / resume.
   void togglePause();
 

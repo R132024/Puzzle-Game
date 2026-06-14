@@ -155,4 +155,25 @@ class SandGrid {
       }
     }
   }
+
+  /// Checks if inserting [count] block rows of garbage would push blocks out of the top of the grid.
+  bool checkGarbageGameOver(int count) {
+    int pixelRows = count * sandScale;
+    for (int r = 0; r < pixelRows && r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (getCell(r, c) != null) return true;
+      }
+    }
+    return false;
+  }
+
+  /// Checks if any sand grain is in the top row within the central columns (blocks 3 to 6).
+  bool checkTopOut() {
+    int startCol = 3 * sandScale;
+    int endCol = 7 * sandScale - 1;
+    for (int c = startCol; c <= endCol; c++) {
+      if (getCell(0, c) != null) return true;
+    }
+    return false;
+  }
 }

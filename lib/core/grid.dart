@@ -113,6 +113,24 @@ class Grid {
     }
   }
 
+  /// Checks if inserting [count] rows of garbage would push blocks out of the top of the grid.
+  bool checkGarbageGameOver(int count) {
+    for (int r = 0; r < count && r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (getCell(r, c) != null) return true;
+      }
+    }
+    return false;
+  }
+
+  /// Checks if any block has locked in the top row within the central columns (3 to 6).
+  bool checkTopOut() {
+    for (int c = 3; c <= 6; c++) {
+      if (getCell(0, c) != null) return true;
+    }
+    return false;
+  }
+
   // ─── Debug ────────────────────────────────────────────────────
 
   @override

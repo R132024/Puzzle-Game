@@ -30,6 +30,10 @@ class PowerEngine implements GameEngine {
   @override
   void Function(int damage)? onGarbageSent;
 
+  // Nuevos callbacks para multiplayer powers
+  void Function(int lines)? onSendGarbagePower;
+  void Function()? onSendSpeedUp;
+
   @override
   int pendingGarbage = 0;
 
@@ -85,11 +89,14 @@ class PowerEngine implements GameEngine {
   // ─── Powers ─────────────────────────────────────────────────
 
   double slowMoTimer = 0;
+  double speedUpTimer = 0; // Para el castigo del rival
 
   // Cooldowns (in seconds)
   double slowMoCooldown = 0;   // Slow Mo: 20s
   double laserCooldown = 0;    // Láser: 30s
   double meteoriteCooldown = 0; // Meteorito: 40s
+  double garbagePowerCooldown = 0; // Enviar Basura: 30s
+  double speedUpPowerCooldown = 0; // Acelerar Rival: 30s
 
   // Animation timers (for visual effects rendered in painter)
   double laserFlashTimer = 0;  // >0 while laser flash visible
@@ -103,6 +110,32 @@ class PowerEngine implements GameEngine {
     AudioService.instance.playPoderLento();
     floatingTexts.add(FloatingText('¡CÁMARA LENTA!', 2.0, 0xFF00E5FF));
     HapticFeedback.mediumImpact();
+  }
+
+  void activateGarbagePower() {
+    if (state.status != GameStatus.playing) return;
+    if (garbagePowerCooldown > 0) return;
+    garbagePowerCooldown = 30.0;
+    onSendGarbagePower?.call(1);
+    AudioService.instance.playRomperFila();
+    floatingTexts.add(FloatingText('¡BASURA AL RIVAL!', 2.0, 0xFFE040FB));
+    HapticFeedback.heavyImpact();
+  }
+
+  void activateSpeedUpPower() {
+    if (state.status != GameStatus.playing) return;
+    if (speedUpPowerCooldown > 0) return;
+    speedUpPowerCooldown = 30.0;
+    onSendSpeedUp?.call();
+    AudioService.instance.playLaser(); // Reutilizar sonido
+    floatingTexts.add(FloatingText('¡ACELERAR RIVAL!', 2.0, 0xFF00E676));
+    HapticFeedback.heavyImpact();
+  }
+
+  void receiveSpeedUp() {
+    speedUpTimer = 7.5;
+    floatingTexts.add(FloatingText('¡TE ACELERARON!', 2.0, 0xFFFF5252));
+    HapticFeedback.vibrate();
   }
 
   /// Láser: clears the bottom 1 row.
@@ -203,7 +236,9 @@ class PowerEngine implements GameEngine {
       0.03,
       baseDropInterval - (state.level - 1) * 0.08,
     );
-    return slowMoTimer > 0 ? base * 4.0 : base;
+    final slowMo = slowMoTimer > 0 ? 4.0 : 1.0;
+    final speedUp = speedUpTimer > 0 ? 3.0 : 1.0;
+    return (base * slowMo) / speedUp;
   }
 
   // ─── Lifecycle ──────────────────────────────────────────────
@@ -227,15 +262,23 @@ class PowerEngine implements GameEngine {
     currentCombo = 0;
     // Reset ALL power-up state
     slowMoTimer = 0;
+    speedUpTimer = 0;
     slowMoCooldown = 0;
     laserCooldown = 0;
     laserFlashTimer = 0;
     meteoriteCooldown = 0;
     meteoriteFlashTimer = 0;
+    garbagePowerCooldown = 0;
+    speedUpPowerCooldown = 0;
     _b2bActive = false;
     pendingGarbage = 0;
     _lastMoveType = LastMoveType.none;
     _spawnPiece();
+  }
+
+  @override
+  void forceGameOver() {
+    state = state.copyWith(status: GameStatus.gameOver);
   }
 
   @override
@@ -257,6 +300,10 @@ class PowerEngine implements GameEngine {
       slowMoTimer -= dt;
       if (slowMoTimer < 0) slowMoTimer = 0;
     }
+    if (speedUpTimer > 0) {
+      speedUpTimer -= dt;
+      if (speedUpTimer < 0) speedUpTimer = 0;
+    }
 
     // Decrease cooldowns
     if (slowMoCooldown > 0) {
@@ -270,6 +317,14 @@ class PowerEngine implements GameEngine {
     if (meteoriteCooldown > 0) {
       meteoriteCooldown -= dt;
       if (meteoriteCooldown < 0) meteoriteCooldown = 0;
+    }
+    if (garbagePowerCooldown > 0) {
+      garbagePowerCooldown -= dt;
+      if (garbagePowerCooldown < 0) garbagePowerCooldown = 0;
+    }
+    if (speedUpPowerCooldown > 0) {
+      speedUpPowerCooldown -= dt;
+      if (speedUpPowerCooldown < 0) speedUpPowerCooldown = 0;
     }
     // Decrease visual flash timers
     if (laserFlashTimer > 0) {
@@ -550,6 +605,12 @@ class PowerEngine implements GameEngine {
 
     _grid.lockPiece(activePiece!);
 
+    if (_grid.checkTopOut()) {
+      AudioService.instance.playPerderGanar();
+      state = state.copyWith(status: GameStatus.gameOver);
+      return;
+    }
+
     // Clear lines
     final result = _lineClearer.clearFullRows(_grid);
     if (result.any) {
@@ -645,12 +706,20 @@ class PowerEngine implements GameEngine {
       
       if (pendingGarbage > 0) {
         int holeCol = Random().nextInt(gridColumns);
-        _grid.insertGarbageLines(pendingGarbage, holeCol);
-        pendingGarbage = 0;
-        
-        if (activePiece != null && _grid.collides(activePiece!)) {
+
+        if (_grid.checkGarbageGameOver(pendingGarbage)) {
+          AudioService.instance.playPerderGanar();
           state = state.copyWith(status: GameStatus.gameOver);
+          return;
         }
+
+        _grid.insertGarbageLines(pendingGarbage, holeCol);
+        
+        if (activePiece != null) {
+          activePiece = activePiece!.moved(-pendingGarbage, 0);
+        }
+        
+        pendingGarbage = 0;
       }
     }
 

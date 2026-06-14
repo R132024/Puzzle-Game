@@ -117,6 +117,11 @@ class ClassicEngine implements GameEngine {
   }
 
   @override
+  void forceGameOver() {
+    state = state.copyWith(status: GameStatus.gameOver);
+  }
+
+  @override
   void togglePause() {
     if (state.status == GameStatus.playing) {
       AudioService.instance.playPausa();
@@ -401,6 +406,12 @@ class ClassicEngine implements GameEngine {
     
     _grid.lockPiece(activePiece!);
 
+    if (_grid.checkTopOut()) {
+      AudioService.instance.playPerderGanar();
+      state = state.copyWith(status: GameStatus.gameOver);
+      return;
+    }
+
     // Clear lines
     final result = _lineClearer.clearFullRows(_grid);
     if (result.any) {
@@ -521,17 +532,21 @@ class ClassicEngine implements GameEngine {
   }
   
   void _spawnGarbage() {
-    // Si el daño es de un ataque grande (>=4), alineado. Si no, aleatorio (un agujero por línea o un agujero por ataque, 
-    // pero para simplificar, usaremos un solo agujero por inserción si es <=3 o la misma columna si es grande).
-    // Puyo Puyo Tetris usa la misma columna para cada "bloque" de basura que llega.
     int holeCol = Random().nextInt(gridColumns);
-    _grid.insertGarbageLines(pendingGarbage, holeCol);
-    pendingGarbage = 0;
-    
-    // Check if blocks overlapped the spawn area
-    if (activePiece != null && _grid.collides(activePiece!)) {
+
+    if (_grid.checkGarbageGameOver(pendingGarbage)) {
+      AudioService.instance.playPerderGanar();
       state = state.copyWith(status: GameStatus.gameOver);
+      return;
     }
+
+    _grid.insertGarbageLines(pendingGarbage, holeCol);
+    
+    if (activePiece != null) {
+      activePiece = activePiece!.moved(-pendingGarbage, 0);
+    }
+    
+    pendingGarbage = 0;
   }
 
   void _spawnPiece() {

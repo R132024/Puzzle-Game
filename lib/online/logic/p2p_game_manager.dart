@@ -94,6 +94,14 @@ class P2PGameManager {
   /// Se invoca cuando el rival abandona o se cae la conexión.
   void Function()? onRivalLeft;
 
+  /// Callback cuando el host cambia el modo de juego.
+  void Function(String mode)? onModeReceived;
+
+  /// Callback cuando el host inicia el juego.
+  void Function()? onGameStart;
+
+  String selectedMode = 'classic';
+
   String? get roomId => _roomId;
   P2PRole? get role => _role;
   bool get isConnected => status.value == P2PStatus.connected;
@@ -201,9 +209,15 @@ class P2PGameManager {
         _roomRef.child('ice_candidates_client').push().set(candidate.toMap());
       };
 
-      // 1) Leer la oferta del host.
-      final offerSnap = await _roomRef.child('host_sdp').get();
-      if (!offerSnap.exists) {
+      // 1) Leer la oferta del host (con reintentos).
+      DataSnapshot? offerSnap;
+      for (int i = 0; i < 5; i++) {
+        offerSnap = await _roomRef.child('host_sdp').get();
+        if (offerSnap.exists) break;
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+      
+      if (offerSnap == null || !offerSnap.exists) {
         _fail('El anfitrión aún no publicó la oferta.');
         return;
       }
@@ -263,7 +277,17 @@ class P2PGameManager {
       try {
         final decoded = jsonDecode(message.text);
         if (decoded is Map<String, dynamic>) {
-          onGameEvent?.call(decoded);
+          final t = decoded['t'];
+          if (t == 'mode') {
+             selectedMode = decoded['mode'];
+             onModeReceived?.call(selectedMode);
+          } else if (t == 'start') {
+             selectedMode = decoded['mode'];
+             onModeReceived?.call(selectedMode);
+             onGameStart?.call();
+          } else {
+             onGameEvent?.call(decoded);
+          }
         }
       } catch (_) {
         // Mensaje malformado: se ignora para no tumbar la partida.
@@ -285,6 +309,19 @@ class P2PGameManager {
   /// Envía líneas de basura al rival (ataque clásico de Tetris PvP).
   void enviarLineaBasura(int lineas) =>
       _send({'t': 'garbage', 'lines': lineas});
+
+  void enviarSpeedUp() => _send({'t': 'speedup'});
+
+  void enviarModo(String mode) {
+    selectedMode = mode;
+    _send({'t': 'mode', 'mode': mode});
+  }
+
+  void iniciarJuego(String mode) {
+    selectedMode = mode;
+    _send({'t': 'start', 'mode': mode});
+    onGameStart?.call();
+  }
 
   /// Notifica que tu tablero cambió (para mini-vista del rival, opcional).
   void enviarEstadoTablero(List<int> boardSnapshot, int score) =>

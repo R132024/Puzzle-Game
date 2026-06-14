@@ -191,8 +191,8 @@ class RadialMenuPainter extends CustomPainter {
         : Offset(centerOffsetVal, size.height / 2);
         
     // El radio debe ajustarse al ancho en modo isBottom para no cortar los bordes.
-    final outerRadius = isBottom ? size.width * 0.45 : size.height * 0.45;
-    final innerRadius = isBottom ? outerRadius * 0.5 : outerRadius * 0.35; 
+    final outerRadius = isBottom ? size.width * 0.50 : size.height * 0.50;
+    final innerRadius = isBottom ? outerRadius * 0.45 : outerRadius * 0.35; 
     
     final sweepAngle = math.pi / items.length;
     final startOffset = isBottom ? math.pi : -math.pi / 2;
@@ -303,7 +303,7 @@ class RadialMenuPainter extends CustomPainter {
       text: TextSpan(
         text: String.fromCharCode(item.icon.codePoint),
         style: TextStyle(
-          fontSize: isSelected ? 34 : 28,
+          fontSize: isSelected ? 46 : 38,
           fontFamily: item.icon.fontFamily,
           package: item.icon.fontPackage,
           color: isSelected ? Colors.white : Colors.white70,
@@ -313,21 +313,7 @@ class RadialMenuPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
     iconPainter.layout();
-    iconPainter.paint(canvas, Offset(-iconPainter.width / 2, -iconPainter.height / 2 - 10));
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: item.title,
-        style: GoogleFonts.orbitron(
-          fontSize: isSelected ? 13 : 11,
-          fontWeight: FontWeight.bold,
-          color: isSelected ? item.highlightColor : Colors.white,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(canvas, Offset(-textPainter.width / 2, iconPainter.height / 2));
+    iconPainter.paint(canvas, Offset(-iconPainter.width / 2, -iconPainter.height / 2));
 
     canvas.restore();
   }

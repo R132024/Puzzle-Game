@@ -1,150 +1,382 @@
+import 'dart:ui';
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
+import 'package:cubix_blast/online/logic/p2p_game_manager.dart';
+import 'package:cubix_blast/core/score_manager.dart';
+import 'package:cubix_blast/core/audio_service.dart';
+import 'package:cubix_blast/theme/game_themes.dart';
+import 'package:cubix_blast/core/game_engine.dart';
+import 'package:cubix_blast/core/constants.dart';
+import 'package:cubix_blast/classic/logic/classic_engine.dart';
+import 'package:cubix_blast/arena/logic/arena_engine.dart';
+import 'package:cubix_blast/power/logic/power_engine.dart';
+import 'package:cubix_blast/classic/ui/classic_painter.dart';
+import 'package:cubix_blast/arena/ui/arena_painter.dart';
+import 'package:cubix_blast/power/ui/power_painter.dart';
+import 'package:cubix_blast/ui/widgets/game_loop_widget.dart';
+import 'package:cubix_blast/ui/widgets/score_board.dart';
+import 'package:cubix_blast/ui/widgets/overlay_menu.dart';
+import 'package:cubix_blast/ui/widgets/game_over_modal.dart';
+import 'package:cubix_blast/ui/widgets/next_piece_preview.dart';
 
-import '../../core/i18n.dart';
-import '../../core/audio_service.dart';
-import '../logic/p2p_game_manager.dart';
+import 'package:cubix_blast/ui/widgets/game_gesture_detector.dart';
+import 'package:cubix_blast/ui/widgets/audio_visualizer_bg.dart';
+import 'package:cubix_blast/ui/widgets/hold_piece_preview.dart';
+import 'package:cubix_blast/power/ui/power_buttons.dart';
+import 'package:cubix_blast/power/logic/power_engine.dart';
 
-/// Pantalla de la partida Online 1v1.
-///
-/// Esqueleto funcional: recibe el [P2PGameManager] ya conectado, escucha los
-/// eventos del rival por el DataChannel y permite enviar ataques. Aquí es donde
-/// integrarías tu `ClassicEngine` para el tablero real; los enganches de red ya
-/// están listos (`enviarLineaBasura`, `onGameEvent`).
 class OnlineMatchScreen extends StatefulWidget {
   const OnlineMatchScreen({super.key, required this.manager});
+
   final P2PGameManager manager;
 
   @override
   State<OnlineMatchScreen> createState() => _OnlineMatchScreenState();
 }
 
-class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
-  int _incomingGarbage = 0;
-  int _rivalScore = 0;
-  bool _finished = false;
-  bool _won = false;
+class _OnlineMatchScreenState extends State<OnlineMatchScreen>
+    with WidgetsBindingObserver {
+  late final GameEngine _engine;
+  final ValueNotifier<int> _frameNotifier = ValueNotifier(0);
+  final FocusNode _focusNode = FocusNode();
+
+  double _accumulatedPanX = 0;
+  bool _panVerticalTriggered = false;
+  bool _hasWon = false;
+  bool _sentGameOver = false;
 
   @override
   void initState() {
     super.initState();
-    widget.manager.onGameEvent = _handleEvent;
-    widget.manager.onRivalLeft = _handleRivalLeft;
-  }
-
-  void _handleEvent(Map<String, dynamic> e) {
-    if (!mounted) return;
-    switch (e['t']) {
-      case 'garbage':
-        setState(() => _incomingGarbage += (e['lines'] as num?)?.toInt() ?? 0);
-        break;
-      case 'board':
-        setState(() => _rivalScore = (e['score'] as num?)?.toInt() ?? 0);
-        break;
-      case 'gameover':
-        // El rival perdió -> tú ganas.
-        setState(() {
-          _finished = true;
-          _won = true;
-        });
-        break;
+    WidgetsBinding.instance.addObserver(this);
+    
+    final mode = widget.manager.selectedMode;
+    if (mode == 'arena') {
+      _engine = ArenaEngine();
+    } else if (mode == 'power') {
+      _engine = PowerEngine();
+    } else {
+      _engine = ClassicEngine();
     }
-  }
+    
+    _engine.onGarbageSent = (lines) {
+      widget.manager.enviarLineaBasura(lines);
+    };
 
-  void _handleRivalLeft() {
-    if (!mounted || _finished) return;
-    setState(() {
-      _finished = true;
-      _won = true;
-    });
+    if (_engine is PowerEngine) {
+      final pEngine = _engine as PowerEngine;
+      pEngine.onSendGarbagePower = (lines) => widget.manager.enviarLineaBasura(lines);
+      pEngine.onSendSpeedUp = () => widget.manager.enviarSpeedUp();
+    }
+    
+    _engine.reset();
+
+    widget.manager.onGameEvent = (event) {
+      if (event['t'] == 'garbage') {
+        _engine.receiveGarbage(event['lines'] ?? 0);
+      } else if (event['t'] == 'speedup') {
+        if (_engine is PowerEngine) {
+          (_engine as PowerEngine).receiveSpeedUp();
+        }
+      } else if (event['t'] == 'gameover') {
+        if (mounted) {
+          _hasWon = true;
+          _engine.forceGameOver();
+          _frameNotifier.value++;
+        }
+      }
+    };
+    widget.manager.onRivalLeft = () {
+      if (mounted) {
+        setState(() {
+          // Rival disconnected
+        });
+      }
+    };
   }
 
   @override
   void dispose() {
+    if (_engine.state.status == GameStatus.playing || _engine.state.status == GameStatus.paused) {
+      widget.manager.enviarGameOver();
+    }
+    WidgetsBinding.instance.removeObserver(this);
+    _frameNotifier.dispose();
+    _focusNode.dispose();
     widget.manager.terminarPartida();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if ((state == AppLifecycleState.paused ||
+            state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.hidden) &&
+        _engine.state.status == GameStatus.playing) {
+      _engine.togglePause();
+    }
+  }
+
+  void _handleKey(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) return;
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        _engine.moveLeft();
+      case LogicalKeyboardKey.arrowRight:
+        _engine.moveRight();
+      case LogicalKeyboardKey.arrowUp:
+        _engine.rotateClockwise();
+      case LogicalKeyboardKey.arrowDown:
+        _engine.softDrop();
+      case LogicalKeyboardKey.space:
+        _engine.hardDrop();
+      case LogicalKeyboardKey.keyP:
+      case LogicalKeyboardKey.escape:
+        _engine.togglePause();
+      case LogicalKeyboardKey.keyR:
+        if (_engine.state.status == GameStatus.gameOver) {
+          _engine.reset();
+        }
+      default:
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF060A14),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  Text(
-                    context.t('connected'),
-                    style: GoogleFonts.orbitron(
-                      color: const Color(0xFF00E676),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-              const Spacer(),
-              if (_finished) ...[
-                Text(
-                  _won ? context.t('you_win') : context.t('you_lose'),
-                  style: GoogleFonts.orbitron(
-                    color: _won
-                        ? const Color(0xFF00E676)
-                        : const Color(0xFFFF1744),
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ] else ...[
-                Text(
-                  'RIVAL  ${_rivalScore.toString().padLeft(6, '0')}',
-                  style: GoogleFonts.orbitron(
-                      color: Colors.white70, fontSize: 16),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '+$_incomingGarbage',
-                  style: GoogleFonts.orbitron(
-                    color: const Color(0xFFFF5500),
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'líneas basura recibidas',
-                  style: GoogleFonts.orbitron(
-                      color: Colors.white38, fontSize: 11),
-                ),
-                const SizedBox(height: 32),
-                // Demo: enviar un ataque al rival.
-                ElevatedButton.icon(
-                  onPressed: () {
-                    AudioService.instance.playBoton();
-                    widget.manager.enviarLineaBasura(2);
-                  },
-                  icon: const Icon(Icons.bolt),
-                  label: const Text('Enviar 2 líneas'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD500F9),
-                    foregroundColor: Colors.white,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  ),
-                ),
-              ],
-              const Spacer(),
-            ],
+      appBar: AppBar(
+        title: const Text('BATALLA ONLINE'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            AudioService.instance.playBoton();
+            Navigator.of(context).pop();
+          },
+        ),
+        actions: [
+          ValueListenableBuilder<bool>(
+            valueListenable: AudioService.instance.bgmNotifier,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                icon: Icon(isEnabled ? Icons.music_note : Icons.music_off, color: Colors.white70),
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  AudioService.instance.toggleBgm();
+                },
+              );
+            },
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: AudioService.instance.sfxNotifier,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                icon: Icon(isEnabled ? Icons.volume_up : Icons.volume_off, color: Colors.white70),
+                onPressed: () {
+                  AudioService.instance.playBoton();
+                  AudioService.instance.toggleSfx();
+                },
+              );
+            },
+          ),
+        ],
+      ),
+      body: GameGestureDetector(
+        onMoveLeft: _engine.moveLeft,
+        onMoveRight: _engine.moveRight,
+        onHardDrop: _engine.hardDrop,
+        onHoldPiece: _engine.holdPiece,
+        onRotateClockwise: _engine.rotateClockwise,
+        onFastDrop: _engine.setFastDrop,
+        child: KeyboardListener(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: _handleKey,
+          child: GameLoopWidget(
+            engine: _engine,
+            frameNotifier: _frameNotifier,
+            builder: (context) => Stack(children: [_buildLayout()]),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildLayout() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxH = constraints.maxHeight - 140;
+        final maxW = constraints.maxWidth;
+        final double canvasW = (maxH * 0.5).clamp(0.0, maxW * 0.95).toDouble();
+        final canvasH = canvasW * 2; // 10:20 ratio
+
+        final theme = GameThemes.getTheme(ScoreManager.currentTheme);
+        final currentColor = Theme.of(context).colorScheme.primary;
+        final tempo = 1.0 + (_engine.state.level * 0.15);
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: AudioVisualizerBg(
+                color: currentColor,
+                tempoMultiplier: tempo,
+              ),
+            ),
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      HoldPiecePreview(
+                        piece: _engine.heldPiece,
+                        canHold: _engine.canHold,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ScoreBoard(
+                          state: _engine.state,
+                          highScore: _engine.highScore,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      NextPiecePreview(piece: _engine.nextPiece),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // --- BARRA DE BASURA ---
+                        if (_engine.pendingGarbage > 0)
+                          Container(
+                            width: 10,
+                            height: canvasH,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black45,
+                              border: Border.all(color: Colors.redAccent, width: 1),
+                            ),
+                            alignment: Alignment.bottomCenter,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              width: 10,
+                              height: canvasH * (_engine.pendingGarbage / 20).clamp(0.0, 1.0),
+                              color: Colors.red,
+                            ),
+                          ),
+                        // --- MATRIZ DEL JUEGO ---
+                        Transform.translate(
+                          offset: Offset(
+                            _engine.shakeTimer > 0
+                                ? (Random().nextDouble() - 0.5) *
+                                    15 *
+                                    _engine.shakeTimer
+                                : 0,
+                            _engine.shakeTimer > 0
+                                ? (Random().nextDouble() - 0.5) *
+                                    15 *
+                                    _engine.shakeTimer
+                                : 0,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+                              child: Container(
+                                width: canvasW,
+                                height: canvasH,
+                                decoration: BoxDecoration(
+                                  color: Colors.transparent,
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                                      blurRadius: 30,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: CustomPaint(
+                                    painter: _getPainterForMode(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_engine is PowerEngine)
+                  ValueListenableBuilder<int>(
+                    valueListenable: _frameNotifier,
+                    builder: (context, frame, child) {
+                      return PowerButtons(
+                        engine: _engine as PowerEngine,
+                        isMultiplayer: true,
+                      );
+                    },
+                  ),
+                const SizedBox(height: 16),
+              ],
+            ),
+            ValueListenableBuilder<int>(
+              valueListenable: _frameNotifier,
+              builder: (context, frame, child) {
+                if (_engine.state.status == GameStatus.gameOver) {
+                  if (!_sentGameOver && !_hasWon) {
+                    _sentGameOver = true;
+                    widget.manager.enviarGameOver();
+                  }
+                  return GameOverModal(
+                    state: _engine.state,
+                    mode: 'online',
+                    titleOverride: _hasWon ? '¡VICTORIA!' : 'FIN DE LA PARTIDA',
+                    onRetry: () => Navigator.of(context).pop(), // Volver al lobby
+                    onMenu: () => Navigator.of(context).pop(),
+                    onResume: () {},
+                  );
+                } else if (_engine.state.status == GameStatus.paused) {
+                  return OverlayMenu(
+                    title: 'PAUSED',
+                    score: _engine.state.score,
+                    bestScore: _engine.highScore,
+                    onResume: _engine.togglePause,
+                    onRestart: () => _engine.reset(),
+                    onHome: () => Navigator.of(context).pop(),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  CustomPainter _getPainterForMode() {
+    final mode = widget.manager.selectedMode;
+    if (mode == 'arena') {
+      return ArenaPainter(engine: _engine as ArenaEngine, repaint: _frameNotifier);
+    } else if (mode == 'power') {
+      return PowerPainter(engine: _engine as PowerEngine, repaint: _frameNotifier);
+    } else {
+      return ClassicPainter(engine: _engine as ClassicEngine, repaint: _frameNotifier);
+    }
   }
 }

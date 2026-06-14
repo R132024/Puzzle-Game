@@ -115,8 +115,7 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
                       dropdownColor: Colors.grey[900],
                       style: const TextStyle(color: Colors.white, fontSize: 18),
                       items: const [
-                        DropdownMenuItem(value: 'classic', child: Text('Clásico (Competitivo)')),
-                        DropdownMenuItem(value: 'arena', child: Text('Modo Arena')),
+                        DropdownMenuItem(value: 'classic', child: Text('Modo Clásico')),
                         DropdownMenuItem(value: 'power', child: Text('Modo Poderes')),
                       ],
                       onChanged: (val) {

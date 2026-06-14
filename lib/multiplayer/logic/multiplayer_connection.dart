@@ -29,10 +29,12 @@ class MultiplayerConnection extends ChangeNotifier {
   Map<String, String> discoveredPeers = {};
 
   // Callbacks for the game UI
-  void Function(int lines)? onGarbageReceived;
-  void Function()? onOpponentGameOver;
+  Function()? onRivalLeft;
+  Function(String)? onModeReceived;
+  Function(int)? onGarbageReceived;
+  Function()? onOpponentGameOver;
+  Function()? onSpeedUpReceived;
   void Function()? onGameStart;
-  void Function(String mode)? onModeReceived;
 
   Future<void> requestPermissions() async {
     try {
@@ -165,6 +167,10 @@ class MultiplayerConnection extends ChangeNotifier {
     _sendMessage('GAMEOVER');
   }
 
+  void sendSpeedUp() {
+    _sendMessage('SPEEDUP');
+  }
+
   void _sendMessage(String msg) {
     if (connectedEndpointId != null) {
       Nearby().sendBytesPayload(
@@ -193,6 +199,8 @@ class MultiplayerConnection extends ChangeNotifier {
     } else if (msg == 'GAMEOVER') {
       debugPrint("MULTIPLAYER: Procesando GAMEOVER del oponente");
       onOpponentGameOver?.call();
+    } else if (msg == 'SPEEDUP') {
+      onSpeedUpReceived?.call();
     }
   }
 

@@ -135,6 +135,11 @@ class ArenaEngine implements GameEngine {
   }
 
   @override
+  void forceGameOver() {
+    state = state.copyWith(status: GameStatus.gameOver);
+  }
+
+  @override
   void togglePause() {
     if (state.status == GameStatus.playing) {
       AudioService.instance.playPausa();
@@ -263,6 +268,12 @@ class ArenaEngine implements GameEngine {
       sandGrid.placeBlock(sandTopRow, sandLeftCol, activePiece!.colorIndex);
     }
 
+    if (sandGrid.checkTopOut()) {
+      AudioService.instance.playPerderGanar();
+      state = state.copyWith(status: GameStatus.gameOver);
+      return;
+    }
+
     activePiece = null;
     _isLocking = false;
     _lockTimer = 0;
@@ -274,8 +285,19 @@ class ArenaEngine implements GameEngine {
     // Si no hubo arena activa ni piezas y hay garbage, lo aplicamos (Arena es más laxo con esto, aplicamos al soltar)
     if (pendingGarbage > 0) {
       int holeCol = Random().nextInt(gridColumns);
-      // La basura en la arena simplemente puede ser bloques sólidos debajo
+
+      if (sandGrid.checkGarbageGameOver(pendingGarbage)) {
+        AudioService.instance.playPerderGanar();
+        state = state.copyWith(status: GameStatus.gameOver);
+        return;
+      }
+
       sandGrid.insertGarbageLines(pendingGarbage, holeCol);
+      
+      if (activePiece != null) {
+        activePiece = activePiece!.moved(-pendingGarbage, 0);
+      }
+      
       pendingGarbage = 0;
     }
   }

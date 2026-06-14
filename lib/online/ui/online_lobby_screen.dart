@@ -29,6 +29,21 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     super.initState();
     _mgr.status.addListener(_onStatusChange);
 
+    _mgr.onGameStart = () {
+      if (!mounted) return;
+      _navigated = true;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => OnlineMatchScreen(manager: _mgr),
+        ),
+      );
+    };
+
+    _mgr.onModeReceived = (mode) {
+      if (!mounted) return;
+      setState(() {});
+    };
+
     // Auto-join si llegamos por invitación.
     final auto = widget.autoJoinRoom;
     if (auto != null && auto.isNotEmpty) {
@@ -41,14 +56,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   void _onStatusChange() {
     if (!mounted) return;
     setState(() {});
-    if (_mgr.status.value == P2PStatus.connected && !_navigated) {
-      _navigated = true;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => OnlineMatchScreen(manager: _mgr),
-        ),
-      );
-    }
   }
 
   @override
@@ -140,6 +147,69 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                     textAlign: TextAlign.center,
                     style: GoogleFonts.orbitron(color: const Color(0xFFFF1744)),
                   ),
+                ] else if (st == P2PStatus.connected) ...[
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.greenAccent,
+                    size: 60,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '¡Conectado!',
+                    style: TextStyle(color: Colors.white, fontSize: 24),
+                  ),
+                  const SizedBox(height: 30),
+                  if (_mgr.role == P2PRole.host)
+                    Column(
+                      children: [
+                        const Text('Modo de Juego:', style: TextStyle(color: Colors.white70)),
+                        DropdownButton<String>(
+                          value: _mgr.selectedMode,
+                          dropdownColor: Colors.grey[900],
+                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                          items: const [
+                            DropdownMenuItem(value: 'classic', child: Text('Modo Clásico')),
+                            DropdownMenuItem(value: 'power', child: Text('Modo Poderes')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _mgr.enviarModo(val);
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 40, vertical: 16),
+                          ),
+                          onPressed: () => _mgr.iniciarJuego(_mgr.selectedMode),
+                          child: const Text(
+                            'Iniciar Batalla',
+                            style: TextStyle(fontSize: 20),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Column(
+                      children: [
+                        Text(
+                          'Modo elegido por el Host: ${_mgr.selectedMode.toUpperCase()}',
+                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                        const SizedBox(height: 20),
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Esperando a que el Host inicie...',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
                 ] else ...[
                   // Crear partida
                   SizedBox(

@@ -19,10 +19,10 @@ import 'package:cubix_blast/ui/widgets/score_board.dart';
 import 'package:cubix_blast/ui/widgets/overlay_menu.dart';
 import 'package:cubix_blast/ui/widgets/game_over_modal.dart';
 import 'package:cubix_blast/ui/widgets/next_piece_preview.dart';
-
 import 'package:cubix_blast/ui/widgets/game_gesture_detector.dart';
 import 'package:cubix_blast/ui/widgets/audio_visualizer_bg.dart';
 import 'package:cubix_blast/ui/widgets/hold_piece_preview.dart';
+import 'package:cubix_blast/power/ui/power_buttons.dart';
 
 class MultiplayerScreen extends StatefulWidget {
   const MultiplayerScreen({super.key});
@@ -39,6 +39,8 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
 
   double _accumulatedPanX = 0;
   bool _panVerticalTriggered = false;
+  bool _hasWon = false;
+  bool _sentGameOver = false;
 
   @override
   void initState() {
@@ -57,6 +59,12 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
     _engine.onGarbageSent = (lines) {
       MultiplayerConnection.instance.sendGarbage(lines);
     };
+
+    if (_engine is PowerEngine) {
+      final pEngine = _engine as PowerEngine;
+      pEngine.onSendGarbagePower = (lines) => MultiplayerConnection.instance.sendGarbage(lines);
+      pEngine.onSendSpeedUp = () => MultiplayerConnection.instance.sendSpeedUp();
+    }
     
     _engine.reset();
 
@@ -65,11 +73,14 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
     };
     MultiplayerConnection.instance.onOpponentGameOver = () {
       if (mounted) {
-        setState(() {
-          // Oponente murió, mostramos victoria.
-          // Aquí podríamos forzar un GameStatus.gameOver con hasWon = true
-          // Por simplicidad, dejamos el status pero mostramos victoria en UI (podemos sobreescribirlo)
-        });
+        _hasWon = true;
+        _engine.forceGameOver();
+        _frameNotifier.value++;
+      }
+    };
+    MultiplayerConnection.instance.onSpeedUpReceived = () {
+      if (_engine is PowerEngine) {
+        (_engine as PowerEngine).receiveSpeedUp();
       }
     };
   }
@@ -299,27 +310,48 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
                     ),
                   ),
                 ),
+                if (_engine is PowerEngine)
+                  ValueListenableBuilder<int>(
+                    valueListenable: _frameNotifier,
+                    builder: (context, frame, child) {
+                      return PowerButtons(
+                        engine: _engine as PowerEngine,
+                        isMultiplayer: true,
+                      );
+                    },
+                  ),
                 const SizedBox(height: 16),
               ],
             ),
-            if (_engine.state.status == GameStatus.gameOver)
-              GameOverModal(
-                state: _engine.state,
-                mode: 'multiplayer',
-                titleOverride: 'FIN DE LA PARTIDA', // No tenemos _engine.hasWon aquí. Lo agregaremos con MultiplayerConnection
-                onRetry: () => Navigator.of(context).pop(), // Volver al lobby
-                onMenu: () => Navigator.of(context).pop(),
-                onResume: () {},
-              )
-            else if (_engine.state.status == GameStatus.paused)
-              OverlayMenu(
-                title: 'PAUSED',
-                score: _engine.state.score,
-                bestScore: _engine.highScore,
-                onResume: _engine.togglePause,
-                onRestart: () => _engine.reset(),
-                onHome: () => Navigator.of(context).pop(),
-              ),
+            ValueListenableBuilder<int>(
+              valueListenable: _frameNotifier,
+              builder: (context, frame, child) {
+                if (_engine.state.status == GameStatus.gameOver) {
+                  if (!_sentGameOver && !_hasWon) {
+                    _sentGameOver = true;
+                    MultiplayerConnection.instance.sendGameOver();
+                  }
+                  return GameOverModal(
+                    state: _engine.state,
+                    mode: 'multiplayer',
+                    titleOverride: _hasWon ? '¡VICTORIA!' : 'FIN DE LA PARTIDA',
+                    onRetry: () => Navigator.of(context).pop(), // Volver al lobby
+                    onMenu: () => Navigator.of(context).pop(),
+                    onResume: () {},
+                  );
+                } else if (_engine.state.status == GameStatus.paused) {
+                  return OverlayMenu(
+                    title: 'PAUSED',
+                    score: _engine.state.score,
+                    bestScore: _engine.highScore,
+                    onResume: _engine.togglePause,
+                    onRestart: () => _engine.reset(),
+                    onHome: () => Navigator.of(context).pop(),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ],
         );
       },
