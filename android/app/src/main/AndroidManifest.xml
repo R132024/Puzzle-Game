@@ -20,6 +20,11 @@
         android:label="cubix_blast"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-6471503808295343~6241775600"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

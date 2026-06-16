@@ -1,8 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import 'package:cubix_blast/core/audio_service.dart';
 
 class RadialMenuItem {
   final String title;
@@ -39,7 +37,7 @@ class RadialModeMenu extends StatefulWidget {
 }
 
 class _RadialModeMenuState extends State<RadialModeMenu> {
-  double _accumulatedDelta = 0;
+  final double _accumulatedDelta = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -203,30 +201,28 @@ class RadialMenuPainter extends CustomPainter {
     canvas.translate(-center.dx, -center.dy);
 
     final totalItems = items.length;
-    final int selectedModIndex = selectedIndex % totalItems;
-    final int realSelectedMod = selectedModIndex < 0 ? selectedModIndex + totalItems : selectedModIndex;
 
-    final int startI = selectedIndex - totalItems;
-    final int endI = selectedIndex + totalItems;
+    // Dibujamos de afuera hacia adentro para que los originales (más cercanos al centro)
+    // SIEMPRE se dibujen por encima de las copias/clones (más lejanos al centro).
+    for (int dist = totalItems; dist >= 0; dist--) {
+      if (dist == 0) {
+        // Centro (botón principal seleccionado)
+        int actualIndex = selectedIndex % totalItems;
+        if (actualIndex < 0) actualIndex += totalItems;
+        _drawSingleItem(canvas, center, outerRadius, innerRadius, startOffset, sweepAngle, selectedIndex, actualIndex, true);
+      } else {
+        // Lado izquierdo (i < selectedIndex)
+        int iLeft = selectedIndex - dist;
+        int actualLeft = iLeft % totalItems;
+        if (actualLeft < 0) actualLeft += totalItems;
+        _drawSingleItem(canvas, center, outerRadius, innerRadius, startOffset, sweepAngle, iLeft, actualLeft, false);
 
-    // Primer paso: Dibujar TODOS los botones NO seleccionados
-    for (int i = startI; i <= endI; i++) {
-      int actualIndex = i % totalItems;
-      if (actualIndex < 0) actualIndex += totalItems;
-      
-      if (actualIndex == realSelectedMod) continue; // Saltamos los seleccionados
-
-      _drawSingleItem(canvas, center, outerRadius, innerRadius, startOffset, sweepAngle, i, actualIndex, false);
-    }
-
-    // Segundo paso: Dibujar TODOS los botones seleccionados (sus clones) por encima
-    for (int i = startI; i <= endI; i++) {
-      int actualIndex = i % totalItems;
-      if (actualIndex < 0) actualIndex += totalItems;
-      
-      if (actualIndex != realSelectedMod) continue; // Saltamos los no seleccionados
-
-      _drawSingleItem(canvas, center, outerRadius, innerRadius, startOffset, sweepAngle, i, actualIndex, true);
+        // Lado derecho (i > selectedIndex)
+        int iRight = selectedIndex + dist;
+        int actualRight = iRight % totalItems;
+        if (actualRight < 0) actualRight += totalItems;
+        _drawSingleItem(canvas, center, outerRadius, innerRadius, startOffset, sweepAngle, iRight, actualRight, false);
+      }
     }
     
     canvas.restore();
@@ -257,8 +253,14 @@ class RadialMenuPainter extends CustomPainter {
       )
       ..close();
 
+    // Calculamos el ángulo central de este botón
+    final midAngle = currentStart + (sweepAngle / 2);
+    // Para que la luz sea exactamente igual (tenue) en TODOS los botones sin importar su posición,
+    // colocamos el centro del gradiente en el lado exactamente OPUESTO del círculo.
+    final gradientCenter = Alignment(-math.cos(midAngle), -math.sin(midAngle));
+
     final gradient = RadialGradient(
-      center: Alignment.centerLeft,
+      center: gradientCenter,
       radius: 1.0,
       colors: [
         isSelected ? item.highlightColor : item.baseColor.withValues(alpha: 0.6),

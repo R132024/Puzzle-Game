@@ -14,7 +14,7 @@ class NowplayingSpotifyController {
   static const String _SPOTIFY_EXPIRATION_KEY = 'spotify.expiration.key';
 
   static const String _redirectUri = 'https://nowplaying.gomes.com/redirect';
-  static const List<String> _scopes = const [
+  static const List<String> _scopes = [
     'user-read-email',
     'user-library-read',
     'user-read-recently-played',
@@ -30,15 +30,15 @@ class NowplayingSpotifyController {
 
   late AuthorizationCodeGrant _grant;
 
-  void setPrefs(SharedPreferences prefs) => this._prefs = prefs;
+  void setPrefs(SharedPreferences prefs) => _prefs = prefs;
 
   /// Sets the Spotify ClientID and ClientSecret for API interaction
   ///
   /// These can be created at https://developer.spotify.com/dashboard
   void setCredentials(
       {required String clientId, required String clientSecret}) {
-    this._clientId = clientId;
-    this._clientSecret = clientSecret;
+    _clientId = clientId;
+    _clientSecret = clientSecret;
   }
 
   /// true if the Spotify API is available for use
@@ -57,15 +57,15 @@ class NowplayingSpotifyController {
   /// holding the Spotify sign-in flow. Users must have a valid Spotify
   /// account and be signed in for Spotify nowplaying details to be available
   Future<bool?> signIn(context) {
-    final _controller = WebViewController()
+    final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (navReq) {
             if (navReq.url.startsWith(_redirectUri)) {
-              this._spotifyApi =
-                  SpotifyApi.fromAuthCodeGrant(this._grant, navReq.url);
+              _spotifyApi =
+                  SpotifyApi.fromAuthCodeGrant(_grant, navReq.url);
               _saveCredentials();
               Navigator.of(context).pop(true);
               return NavigationDecision.prevent;
@@ -78,7 +78,7 @@ class NowplayingSpotifyController {
 
     return Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) => WebViewWidget(controller: _controller),
+        builder: (context) => WebViewWidget(controller: controller),
       ),
     );
   }
@@ -101,14 +101,14 @@ class NowplayingSpotifyController {
     final expiration = _prefs.getInt(_SPOTIFY_EXPIRATION_KEY) ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    if (this._spotifyApi == null || expiration < now) {
+    if (_spotifyApi == null || expiration < now) {
       final String? accessToken = _prefs.getString(_SPOTIFY_ACCESS_KEY);
       final String? refreshToken = _prefs.getString(_SPOTIFY_REFRESH_KEY);
 
       if (accessToken is String && refreshToken is String) {
         final creds = SpotifyApiCredentials(
-          this._clientId,
-          this._clientSecret,
+          _clientId,
+          _clientSecret,
           accessToken: accessToken,
           refreshToken: refreshToken,
           scopes: _scopes,
@@ -116,23 +116,23 @@ class NowplayingSpotifyController {
         );
 
         try {
-          this._spotifyApi = SpotifyApi(creds);
+          _spotifyApi = SpotifyApi(creds);
         } on AuthorizationException catch (e) {
           print('ERROR: $e');
-          this._spotifyApi = null;
+          _spotifyApi = null;
         }
 
         _saveCredentials();
       }
     }
 
-    return this._spotifyApi;
+    return _spotifyApi;
   }
 
   void _saveCredentials() async {
-    if (this._spotifyApi is SpotifyApi) {
+    if (_spotifyApi is SpotifyApi) {
       final SpotifyApiCredentials creds =
-          await this._spotifyApi!.getCredentials();
+          await _spotifyApi!.getCredentials();
       _prefs.setString(_SPOTIFY_ACCESS_KEY, creds.accessToken!);
       _prefs.setString(_SPOTIFY_REFRESH_KEY, creds.refreshToken!);
       _prefs.setInt(
@@ -141,11 +141,10 @@ class NowplayingSpotifyController {
   }
 
   Uri get _authUri {
-    this._grant = SpotifyApi.authorizationCodeGrant(
-      SpotifyApiCredentials(this._clientId, this._clientSecret),
+    _grant = SpotifyApi.authorizationCodeGrant(
+      SpotifyApiCredentials(_clientId, _clientSecret),
     );
-    return this
-        ._grant
+    return _grant
         .getAuthorizationUrl(Uri.parse(_redirectUri), scopes: _scopes);
   }
 
@@ -156,16 +155,16 @@ class NowplayingSpotifyController {
       try {
         final playbackState = await api.player.currentlyPlaying();
         if (playbackState.item is Track) {
-          this.track = SpotifyTrack.from(playbackState);
+          track = SpotifyTrack.from(playbackState);
         } else {
-          this.track = SpotifyTrack.notPlaying;
+          track = SpotifyTrack.notPlaying;
         }
       } catch (e) {
         print('ERROR: $e');
-        if (e is! ApiRateException) this.track = SpotifyTrack.notPlaying;
+        if (e is! ApiRateException) track = SpotifyTrack.notPlaying;
       }
     }
-    return this.track;
+    return track;
   }
 }
 
@@ -173,7 +172,7 @@ class NowplayingSpotifyController {
 class SpotifyTrack extends NowPlayingTrack {
   static final SpotifyTrack notPlaying = SpotifyTrack();
   static const _icon =
-      const AssetImage('assets/spotify.png', package: 'nowplaying');
+      AssetImage('assets/spotify.png', package: 'nowplaying');
 
   final String? _imageUrl;
 
@@ -189,28 +188,17 @@ class SpotifyTrack extends NowPlayingTrack {
   }
 
   SpotifyTrack({
-    String? id,
-    String? title,
-    String? album,
-    String? artist,
+    super.id,
+    super.title,
+    super.album,
+    super.artist,
     String? image,
-    String? source,
-    DateTime? createdAt,
-    Duration duration = Duration.zero,
-    Duration position = Duration.zero,
-    NowPlayingState state = NowPlayingState.stopped,
-  })  : this._imageUrl = image,
-        super(
-          id: id,
-          title: title,
-          album: album,
-          artist: artist,
-          duration: duration,
-          position: position,
-          state: state,
-          source: source,
-          createdAt: createdAt,
-        );
+    super.source,
+    super.createdAt,
+    super.duration,
+    super.position,
+    super.state,
+  })  : _imageUrl = image;
 
   factory SpotifyTrack.from(PlaybackState playbackState) {
     return SpotifyTrack(
@@ -232,16 +220,16 @@ class SpotifyTrack extends NowPlayingTrack {
 
   @override
   SpotifyTrack copy() => SpotifyTrack(
-        id: this.id,
-        title: this.title,
-        album: this.album,
-        image: this._imageUrl,
-        artist: this.artist,
-        duration: this.duration,
-        position: this.position,
-        state: this.state,
-        source: this.source,
-        createdAt: this.createdAt,
+        id: id,
+        title: title,
+        album: album,
+        image: _imageUrl,
+        artist: artist,
+        duration: duration,
+        position: position,
+        state: state,
+        source: source,
+        createdAt: createdAt,
       );
 
   @override

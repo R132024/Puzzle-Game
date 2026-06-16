@@ -3,6 +3,8 @@ import 'package:cubix_blast/core/i18n.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
+import 'package:cubix_blast/core/iap_service.dart';
+import 'package:cubix_blast/ui/widgets/block_painter_utils.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -59,8 +61,12 @@ class _ShopScreenState extends State<ShopScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
+      body: Column(
+        children: [
+          if (!ScoreManager.isPremium) _buildPremiumBanner(),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
         itemCount: themes.length,
         itemBuilder: (context, index) {
           final theme = themes[index];
@@ -156,6 +162,72 @@ class _ShopScreenState extends State<ShopScreen> {
           );
         },
       ),
+     ),
+    ],
+   ),
+  );
+ }
+
+  Widget _buildPremiumBanner() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD600), Color(0xFFFF6D00)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD600).withValues(alpha: 0.5),
+            blurRadius: 15,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.star, color: Colors.white, size: 40),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PAQUETE PREMIUM',
+                  style: GoogleFonts.orbitron(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Desbloquea todos los temas y quita todos los anuncios para siempre.',
+                  style: TextStyle(color: Colors.black87, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          ElevatedButton(
+            onPressed: () async {
+              await IAPService.instance.buyPremium();
+              _update();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: const Color(0xFFFFD600),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text('COMPRAR'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -166,12 +238,31 @@ class _ShopScreenState extends State<ShopScreen> {
           width: 20,
           height: 20,
           margin: const EdgeInsets.only(right: 4),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
+          child: CustomPaint(
+            painter: _MiniBlockPainter(color, theme.pieceStyle),
           ),
         );
       }).toList(),
     );
   }
+}
+
+class _MiniBlockPainter extends CustomPainter {
+  _MiniBlockPainter(this.color, this.style);
+  final Color color;
+  final PieceStyle style;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    BlockPainterUtils.drawBlock(
+      canvas: canvas,
+      rect: Rect.fromLTWH(0, 0, size.width, size.height),
+      color: color,
+      style: style,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_MiniBlockPainter old) => 
+      old.color != color || old.style != style;
 }

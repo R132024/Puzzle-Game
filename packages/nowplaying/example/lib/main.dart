@@ -29,6 +29,8 @@ class NowPlayingExample extends StatelessWidget {
 }
 
 class NowPlayingTrackWidget extends StatefulWidget {
+  const NowPlayingTrackWidget({super.key});
+
   @override
   _NowPlayingTrackState createState() => _NowPlayingTrackState();
 }
@@ -96,7 +98,7 @@ class _NowPlayingTrackState extends State<NowPlayingTrackWidget> {
   }
 
   Widget _imageFrom(NowPlayingTrack track) {
-    if (track.hasImage)
+    if (track.hasImage) {
       return Image(
         key: Key(track.id),
         image: track.image!,
@@ -104,6 +106,7 @@ class _NowPlayingTrackState extends State<NowPlayingTrackWidget> {
         height: 200,
         fit: BoxFit.contain,
       );
+    }
 
     if (track.isResolvingImage) {
       return SizedBox(
@@ -120,12 +123,12 @@ class _NowPlayingTrackState extends State<NowPlayingTrackWidget> {
   }
 
   Widget _iconFrom(NowPlayingTrack track) {
-    if (track.hasIcon)
+    if (track.hasIcon) {
       return Container(
         padding: const EdgeInsets.all(6),
         decoration: const BoxDecoration(
             color: Colors.white,
-            boxShadow: [const BoxShadow(blurRadius: 5, color: Colors.black)],
+            boxShadow: [BoxShadow(blurRadius: 5, color: Colors.black)],
             shape: BoxShape.circle),
         child: Image(
           image: track.icon!,
@@ -136,6 +139,7 @@ class _NowPlayingTrackState extends State<NowPlayingTrackWidget> {
           colorBlendMode: BlendMode.srcIn,
         ),
       );
+    }
     return Container();
   }
 
@@ -156,7 +160,7 @@ class _NowPlayingTrackState extends State<NowPlayingTrackWidget> {
 class TrackProgressIndicator extends StatefulWidget {
   final NowPlayingTrack track;
 
-  TrackProgressIndicator(this.track);
+  const TrackProgressIndicator(this.track, {super.key});
 
   @override
   _TrackProgressIndicatorState createState() => _TrackProgressIndicatorState();
@@ -193,7 +197,7 @@ class _TrackProgressIndicatorState extends State<TrackProgressIndicator> {
 
 extension DurationExtension on Duration {
   Duration get truncToSecond {
-    final ms = this.inMilliseconds;
+    final ms = inMilliseconds;
     return Duration(milliseconds: ms - ms % 1000);
   }
 

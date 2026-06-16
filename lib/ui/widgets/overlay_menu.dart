@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
-import '../theme/app_theme.dart';
 import '../../core/i18n.dart';
+import 'banner_ad_widget.dart';
 
 class OverlayMenu extends StatelessWidget {
   const OverlayMenu({
@@ -60,6 +60,8 @@ class OverlayMenu extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const BannerAdWidget(),
+                  const SizedBox(height: 16),
                   Text(
                     title,
                     style: GoogleFonts.orbitron(
@@ -114,6 +116,8 @@ class OverlayMenu extends StatelessWidget {
                     onTap: onHome,
                     color: const Color(0xFFFF1744),
                   ),
+                  const SizedBox(height: 16),
+                  const BannerAdWidget(),
                 ],
               ),
             ),

@@ -7,7 +7,6 @@ import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/audio_service.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/core/game_engine.dart';
-import 'package:cubix_blast/core/constants.dart';
 import 'package:cubix_blast/classic/logic/classic_engine.dart';
 import 'package:cubix_blast/arena/logic/arena_engine.dart';
 import 'package:cubix_blast/power/logic/power_engine.dart';
@@ -37,8 +36,6 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
   final ValueNotifier<int> _frameNotifier = ValueNotifier(0);
   final FocusNode _focusNode = FocusNode();
 
-  double _accumulatedPanX = 0;
-  bool _panVerticalTriggered = false;
   bool _hasWon = false;
   bool _sentGameOver = false;
 
@@ -61,7 +58,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
     };
 
     if (_engine is PowerEngine) {
-      final pEngine = _engine as PowerEngine;
+      final pEngine = _engine;
       pEngine.onSendGarbagePower = (lines) => MultiplayerConnection.instance.sendGarbage(lines);
       pEngine.onSendSpeedUp = () => MultiplayerConnection.instance.sendSpeedUp();
     }
@@ -80,7 +77,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
     };
     MultiplayerConnection.instance.onSpeedUpReceived = () {
       if (_engine is PowerEngine) {
-        (_engine as PowerEngine).receiveSpeedUp();
+        (_engine).receiveSpeedUp();
       }
     };
   }
@@ -202,7 +199,6 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
         final double canvasW = (maxH * 0.5).clamp(0.0, maxW * 0.95).toDouble();
         final canvasH = canvasW * 2; // 10:20 ratio
 
-        final theme = GameThemes.getTheme(ScoreManager.currentTheme);
         final currentColor = Theme.of(context).colorScheme.primary;
         final tempo = 1.0 + (_engine.state.level * 0.15);
 
@@ -216,26 +212,31 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
             ),
             Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      HoldPiecePreview(
-                        piece: _engine.heldPiece,
-                        canHold: _engine.canHold,
+                ValueListenableBuilder<int>(
+                  valueListenable: _frameNotifier,
+                  builder: (context, frame, _) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          HoldPiecePreview(
+                            piece: _engine.heldPiece,
+                            canHold: _engine.canHold,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ScoreBoard(
+                              state: _engine.state,
+                              highScore: _engine.highScore,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          NextPiecePreview(piece: _engine.nextPiece),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ScoreBoard(
-                          state: _engine.state,
-                          highScore: _engine.highScore,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      NextPiecePreview(piece: _engine.nextPiece),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 Expanded(
                   child: Center(
@@ -315,7 +316,7 @@ class _MultiplayerScreenState extends State<MultiplayerScreen>
                     valueListenable: _frameNotifier,
                     builder: (context, frame, child) {
                       return PowerButtons(
-                        engine: _engine as PowerEngine,
+                        engine: _engine,
                         isMultiplayer: true,
                       );
                     },

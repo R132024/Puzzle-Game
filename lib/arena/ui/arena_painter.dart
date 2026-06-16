@@ -3,7 +3,6 @@ import 'package:cubix_blast/core/constants.dart';
 import 'package:cubix_blast/arena/logic/arena_engine.dart';
 import 'package:cubix_blast/ui/theme/app_theme.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
-import 'package:cubix_blast/core/score_manager.dart';
 
 /// Renders the Arena mode sand grid using CustomPainter.
 class ArenaPainter extends CustomPainter {

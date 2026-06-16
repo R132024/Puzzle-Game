@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'core/ad_service.dart';
 import 'ui/theme/app_theme.dart';
 import 'ui/screens/home_screen.dart';
 import 'classic/ui/classic_screen.dart';
@@ -15,6 +16,7 @@ import 'package:cubix_blast/multiplayer/ui/multiplayer_screen.dart';
 
 import 'package:cubix_blast/core/player_manager.dart';
 import 'package:cubix_blast/core/mission_manager.dart';
+import 'package:cubix_blast/core/iap_service.dart';
 import 'package:cubix_blast/core/i18n.dart';
 import 'package:cubix_blast/online/ui/online_lobby_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -27,6 +29,7 @@ void main() async {
   await ScoreManager.init();
   await PlayerManager.init();
   await MissionManager.init();
+  await IAPService.instance.init();
   await LocaleController.instance.init();
   // Firebase es necesario solo para el modo Online (signaling). Si no está
   // configurado aún, la app sigue funcionando en los modos offline.
@@ -41,7 +44,11 @@ void main() async {
   // AudioService initializes internally on first access
   AudioService.instance.playBgm('audio/puzzlemenu.mp3');
 
-  runApp(const ProviderScope(child: CubixBlastApp()));
+  // Inicializar Google Mobile Ads y cargar anuncios
+  MobileAds.instance.initialize();
+  AdService.instance.initialize();
+
+  runApp(const CubixBlastApp());
 }
 
 class CubixBlastApp extends StatelessWidget {

@@ -1,5 +1,4 @@
 import 'package:cubix_blast/core/i18n.dart';
-import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,14 +6,15 @@ import 'package:cubix_blast/core/music_service.dart';
 import 'package:cubix_blast/arena/logic/arena_engine.dart';
 import 'package:cubix_blast/arena/ui/arena_painter.dart';
 import 'package:cubix_blast/core/game_engine.dart';
-import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/audio_service.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/ui/widgets/game_loop_widget.dart';
 import 'package:cubix_blast/ui/widgets/score_board.dart';
 import 'package:cubix_blast/ui/widgets/overlay_menu.dart';
 import 'package:cubix_blast/ui/widgets/game_over_modal.dart';
+import 'package:cubix_blast/ui/widgets/game_over_modal.dart';
 import 'package:cubix_blast/ui/widgets/next_piece_preview.dart';
+import 'package:cubix_blast/core/ad_service.dart';
 
 import 'package:cubix_blast/ui/widgets/game_gesture_detector.dart';
 import 'package:cubix_blast/ui/widgets/audio_visualizer_bg.dart';
@@ -33,8 +33,8 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
   final ValueNotifier<int> _frameNotifier = ValueNotifier(0);
   final FocusNode _focusNode = FocusNode();
 
-  double _accumulatedPanX = 0;
-  bool _panVerticalTriggered = false;
+  final double _accumulatedPanX = 0;
+  final bool _panVerticalTriggered = false;
 
   bool _initializedLevel = false;
   int _startingLevel = 1;
@@ -291,13 +291,55 @@ class _ArenaScreenState extends State<ArenaScreen> with WidgetsBindingObserver {
             ValueListenableBuilder<int>(
               valueListenable: _frameNotifier,
               builder: (context, frame, child) {
+                if (_engine.reviveCountdown > 0) {
+                  return Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    child: Center(
+                      child: Text(
+                        _engine.reviveCountdown.ceil().toString(),
+                        style: TextStyle(
+                          fontSize: 120,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Theme.of(context).colorScheme.primary, 
+                              blurRadius: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
                 if (_engine.state.status == GameStatus.gameOver) {
                   return GameOverModal(
                     state: _engine.state,
                     mode: 'arena',
-                    onRetry: () => _engine.reset(initialLevel: _startingLevel),
-                    onMenu: () => Navigator.of(context).pop(),
+                    onRetry: () {
+                      AdService.instance.showInterstitialIfNeeded();
+                      _engine.reset(initialLevel: _startingLevel);
+                    },
+                    onMenu: () {
+                      AdService.instance.showInterstitialIfNeeded();
+                      Navigator.of(context).pop();
+                    },
                     onResume: () {},
+                    onRevive: () async {
+                      final success = await AdService.instance.showRewardedAd();
+                      if (success) {
+                        _engine.revive();
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Video cancelado o no disponible aún.'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      }
+                    },
                   );
                 } else if (_engine.state.status == GameStatus.paused) {
                   return OverlayMenu(

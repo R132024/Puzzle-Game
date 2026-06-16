@@ -42,6 +42,9 @@ class PowerEngine implements GameEngine {
     pendingGarbage += lines;
   }
 
+  @override
+  double reviveCountdown = 0.0;
+
   // ─── State ──────────────────────────────────────────────────
 
   @override
@@ -293,8 +296,38 @@ class PowerEngine implements GameEngine {
   }
 
   @override
+  void revive() {
+    if (state.status != GameStatus.gameOver) return;
+    
+    // Clear bottom 4 lines
+    for (int r = gridRows - 4; r < gridRows; r++) {
+      for (int c = 0; c < gridColumns; c++) {
+        _grid.setCell(r, c, null);
+      }
+    }
+    
+    // Shift everything else down by 4
+    for (int r = gridRows - 5; r >= 0; r--) {
+      for (int c = 0; c < gridColumns; c++) {
+        final cell = _grid.getCell(r, c);
+        _grid.setCell(r, c, null);
+        _grid.setCell(r + 4, c, cell);
+      }
+    }
+
+    reviveCountdown = 3.99;
+    state = state.copyWith(status: GameStatus.playing);
+    _spawnPiece();
+  }
+  @override
   void update(double dt) {
     if (state.status != GameStatus.playing) return;
+
+    if (reviveCountdown > 0) {
+      reviveCountdown -= dt;
+      if (reviveCountdown < 0) reviveCountdown = 0;
+      return; // Pause the game loop while counting down
+    }
 
     if (slowMoTimer > 0) {
       slowMoTimer -= dt;
@@ -510,8 +543,9 @@ class PowerEngine implements GameEngine {
 
   @override
   void holdPiece() {
-    if (state.status != GameStatus.playing || activePiece == null || !canHold)
+    if (state.status != GameStatus.playing || activePiece == null || !canHold) {
       return;
+    }
 
     final currentShape = activePiece!.shape;
     final currentColor = activePiece!.colorIndex;

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cubix_blast/core/high_score_store.dart';
@@ -6,12 +7,14 @@ import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/audio_service.dart';
 import 'package:cubix_blast/core/player_manager.dart';
 import 'package:cubix_blast/core/mission_manager.dart';
+import 'package:cubix_blast/core/music_service.dart';
 import 'package:cubix_blast/ui/widgets/radial_menu.dart';
 import 'package:cubix_blast/ui/widgets/particles_bg.dart';
 import 'package:cubix_blast/core/i18n.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:cubix_blast/online/logic/online_invite.dart';
+import 'package:cubix_blast/core/ad_service.dart';
 /// Home screen with animated mode selection menu and high scores.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
+  bool _hasNotifiedMusicMode = false;
 
   @override
   void initState() {
@@ -54,6 +58,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     _loadRecords();
     _initDeepLinks();
+    MusicService.instance.currentTrack.addListener(_onMusicTrackChanged);
+  }
+
+  void _onMusicTrackChanged() {
+    final track = MusicService.instance.currentTrack.value;
+    if (track != null && track.isPlaying && !_hasNotifiedMusicMode && mounted) {
+      _hasNotifiedMusicMode = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showMusicModeAlert(context);
+        }
+      });
+    }
   }
 
   void _initDeepLinks() {
@@ -107,6 +124,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _pulseController.dispose();
     _fadeController.dispose();
     _linkSubscription?.cancel();
+    MusicService.instance.currentTrack.removeListener(_onMusicTrackChanged);
     super.dispose();
   }
 
@@ -763,7 +781,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
       RadialMenuItem(
         title: context.t('mode_arena'),
-        icon: Icons.timer,
+        icon: Icons.hourglass_bottom,
         baseColor: const Color(0xFFFF3D00),
         highlightColor: const Color(0xFFDD2C00),
       ),
@@ -919,14 +937,39 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildLanguageSelector(color),
+              const SizedBox(height: 24),
+              Text(
+                'Créditos de Audio:\nFX: Lolo_s\nMusic: Caret7',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.orbitron(
+                  fontSize: 10,
+                  color: Colors.white30,
+                  height: 1.5,
+                ),
+              ),
             ] else if (modIndex == 3) ...[
               // Panel Multijugador: acceso al modo Online 1v1 (Firebase + WebRTC)
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   AudioService.instance.playBoton();
-                  Navigator.pushNamed(context, '/online_lobby');
+                  final success = await AdService.instance.showRewardedAd();
+                  if (success) {
+                    if (context.mounted) {
+                      Navigator.pushNamed(context, '/online_lobby');
+                    }
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Video cancelado o no disponible aún.'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.public, color: Color(0xFFD500F9)),
                 label: Text(
@@ -1028,7 +1071,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     const Icon(Icons.play_arrow, size: 28),
                     const SizedBox(width: 8),
                     Text(
-                      context.t('play'),
+                      modIndex == 3 ? 'Local 1v1' : context.t('play'),
                       style: GoogleFonts.orbitron(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -1159,80 +1202,73 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         return Center(
           child: Material(
             color: Colors.transparent,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFFF0055), width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF0055).withValues(alpha: 0.6),
-                    blurRadius: 30,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.headphones,
-                    color: const Color(0xFFFF0055),
-                    size: 64,
-                    shadows: [
-                      Shadow(color: const Color(0xFFFF0055), blurRadius: 20)
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    context.t('music_mode_title'),
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.orbitron(
-                      color: const Color(0xFFFF0055),
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(color: const Color(0xFFFF0055), blurRadius: 10)
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 50),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFFF0055).withValues(alpha: 0.4), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF0055).withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.headphones,
+                          color: const Color(0xFFFF0055),
+                          size: 40,
+                          shadows: [
+                            Shadow(color: const Color(0xFFFF0055), blurRadius: 10)
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          context.t('music_mode_title'),
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.orbitron(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            AudioService.instance.playBoton();
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF0055).withValues(alpha: 0.9),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            context.t('got_it'),
+                            style: GoogleFonts.orbitron(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    context.t('music_mode_body'),
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.orbitron(
-                      color: Colors.white,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      AudioService.instance.playBoton();
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF0055),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 10,
-                      shadowColor: const Color(0xFFFF0055),
-                    ),
-                    child: Text(
-                      context.t('got_it'),
-                      style: GoogleFonts.orbitron(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

@@ -92,6 +92,9 @@ abstract class GameEngine {
   /// High score for the current mode.
   int get highScore;
 
+  /// Timer for the 3-2-1 countdown after reviving.
+  double get reviveCountdown;
+
   // ─── Lifecycle ──────────────────────────────────────────────
 
   /// Advance the simulation by [dt] seconds.
@@ -105,6 +108,9 @@ abstract class GameEngine {
 
   /// Toggle pause / resume.
   void togglePause();
+
+  /// Revives the player by clearing some lines and setting status back to playing.
+  void revive();
 
   // ─── Player input ───────────────────────────────────────────
 

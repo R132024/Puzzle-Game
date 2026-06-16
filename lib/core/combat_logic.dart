@@ -93,15 +93,18 @@ class CombatLogic {
 
     // Base damage
     if (tSpin == TSpinType.normal) {
-      if (linesCleared == 1) damage = 2; // T-Spin Single
-      else if (linesCleared == 2) damage = 4; // T-Spin Double
+      if (linesCleared == 1) {
+        damage = 2; // T-Spin Single
+      } else if (linesCleared == 2) damage = 4; // T-Spin Double
       else if (linesCleared == 3) damage = 6; // T-Spin Triple
     } else if (tSpin == TSpinType.mini) {
-      if (linesCleared == 1) damage = 1; // T-Spin Mini Single
-      else if (linesCleared == 2) damage = 4; // Very rare TSD mini, treat as normal
+      if (linesCleared == 1) {
+        damage = 1; // T-Spin Mini Single
+      } else if (linesCleared == 2) damage = 4; // Very rare TSD mini, treat as normal
     } else {
-      if (linesCleared == 2) damage = 1;
-      else if (linesCleared == 3) damage = 2;
+      if (linesCleared == 2) {
+        damage = 1;
+      } else if (linesCleared == 3) damage = 2;
       else if (linesCleared == 4) damage = 4; // Tetris
     }
 
@@ -115,8 +118,9 @@ class CombatLogic {
 
     // Combo bonus
     if (combo > 0) {
-      if (combo >= 1 && combo <= 3) damage += 1;
-      else if (combo >= 4 && combo <= 6) damage += 2;
+      if (combo >= 1 && combo <= 3) {
+        damage += 1;
+      } else if (combo >= 4 && combo <= 6) damage += 2;
       else if (combo >= 7 && combo <= 10) damage += 3;
       else if (combo >= 11) damage += 4;
     }

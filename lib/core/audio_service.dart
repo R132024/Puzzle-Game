@@ -1,6 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:audio_session/audio_session.dart' as session;
-import 'package:flutter/foundation.dart';
 import 'music_service.dart';
 
 import 'package:flutter/widgets.dart';
@@ -78,6 +77,7 @@ class AudioService with WidgetsBindingObserver {
 
     // Escuchar cambios en la música externa (usando el MusicService existente)
     MusicService.instance.currentTrack.addListener(_onExternalMusicChanged);
+    _onExternalMusicChanged(); // Capturar estado inicial si ya había música
   }
 
   void _onExternalMusicChanged() {
@@ -85,8 +85,14 @@ class AudioService with WidgetsBindingObserver {
     final bool isExternalPlaying = track != null && track.isPlaying;
     
     if (isExternalPlaying) {
+      if (bgmNotifier.value) {
+        bgmNotifier.value = false;
+      }
       pauseBgm();
     } else {
+      if (!bgmNotifier.value) {
+        bgmNotifier.value = true;
+      }
       resumeBgm();
     }
   }

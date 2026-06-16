@@ -8,6 +8,7 @@ import 'nowplaying_image_resolver.dart';
 class SpotifyImageResolver implements NowPlayingImageResolver {
   static const int _BATCH_SIZE = 50;
 
+  @override
   Future<ImageProvider?> resolve(NowPlayingTrack track) async {
     if (track.hasImage) return null;
     if (NowPlaying.spotify.isUnconnected) return null;

@@ -6,6 +6,7 @@ import 'package:cubix_blast/core/player_manager.dart';
 import 'package:cubix_blast/core/mission_manager.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/i18n.dart';
+import 'banner_ad_widget.dart';
 
 class GameOverModal extends StatefulWidget {
   const GameOverModal({
@@ -15,6 +16,7 @@ class GameOverModal extends StatefulWidget {
     required this.onRetry,
     required this.onMenu,
     required this.onResume,
+    this.onRevive,
     this.titleOverride,
   });
 
@@ -23,6 +25,7 @@ class GameOverModal extends StatefulWidget {
   final VoidCallback onRetry;
   final VoidCallback onMenu;
   final VoidCallback onResume;
+  final VoidCallback? onRevive;
   final String? titleOverride;
 
   @override
@@ -129,131 +132,150 @@ class _GameOverModalState extends State<GameOverModal> {
   Widget _buildContent(BuildContext context) {
     final isGameOver = widget.state.status == GameStatus.gameOver;
 
-    return Positioned.fill(
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.0, end: 1.0),
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutBack,
-        builder: (context, value, child) {
-          return Opacity(
-            opacity: value.clamp(0.0, 1.0),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10 * value, sigmaY: 10 * value),
-              child: Container(
-                color: Colors.black.withValues(
-                  alpha: 0.4 * value.clamp(0.0, 1.0),
-                ),
-                alignment: Alignment.center,
-                child: Transform.scale(
-                  scale: value,
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BannerAdWidget(),
+          const SizedBox(height: 16),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10 * value, sigmaY: 10 * value),
                   child: Container(
-                    width: 320,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A).withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF00E5FF),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
+                    color: Colors.black.withValues(
+                      alpha: 0.4 * value.clamp(0.0, 1.0),
                     ),
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            isGameOver ? (widget.titleOverride ?? context.t('game_over')) : context.t('paused'),
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 2,
-                            ),
+                    alignment: Alignment.center,
+                    child: Transform.scale(
+                      scale: value,
+                      child: Container(
+                        width: 320,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F172A).withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF00E5FF),
+                            width: 2,
                           ),
-                          const SizedBox(height: 24),
-                          if (isGameOver) ...[
-                            Text(
-                              '${context.t('score')}: ${widget.state.score}',
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF00E676),
-                              ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${context.t('time')}: ${_formatTime(widget.state.elapsedSeconds)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.white70,
+                          ],
+                        ),
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isGameOver ? (widget.titleOverride ?? context.t('game_over')) : context.t('paused'),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 2,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            if (_previousRecord != null &&
-                                widget.state.score > _previousRecord!.score)
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 16),
-                                child: Text(
-                                  '¡NUEVO RÉCORD!',
-                                  style: TextStyle(
-                                    fontSize: 16,
+                              const SizedBox(height: 24),
+                              if (isGameOver) ...[
+                                Text(
+                                  '${context.t('score')}: ${widget.state.score}',
+                                  style: const TextStyle(
+                                    fontSize: 22,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFFFFD600),
+                                    color: Color(0xFF00E676),
                                   ),
                                 ),
-                              ),
-                            if (_saved)
-                              Text(
-                                context.t('score_saved'),
-                                style: const TextStyle(
-                                  color: Color(0xFF00E676),
-                                  fontSize: 14,
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${context.t('time')}: ${_formatTime(widget.state.elapsedSeconds)}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white70,
+                                  ),
                                 ),
-                              ),
-                            const SizedBox(height: 24),
-                          ],
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              if (isGameOver)
-                                ElevatedButton(
-                                  onPressed: widget.onRetry,
-                                  child: Text(context.t('retry')),
-                                )
-                              else
-                                ElevatedButton(
-                                  onPressed: widget.onResume,
-                                  child: Text(context.t('resume')),
-                                ),
-                              OutlinedButton(
-                                onPressed: widget.onMenu,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white70,
-                                  side: const BorderSide(color: Colors.white30),
-                                ),
-                                child: Text(context.t('menu')),
+                                const SizedBox(height: 24),
+                                if (_previousRecord != null &&
+                                    widget.state.score > _previousRecord!.score)
+                                  const Padding(
+                                    padding: EdgeInsets.only(bottom: 16),
+                                    child: Text(
+                                      '¡NUEVO RÉCORD!',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFFFD600),
+                                      ),
+                                    ),
+                                  ),
+                                if (_saved)
+                                  Text(
+                                    context.t('score_saved'),
+                                    style: const TextStyle(
+                                      color: Color(0xFF00E676),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                const SizedBox(height: 24),
+                              ],
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  if (isGameOver) ...[
+                                    if (widget.onRevive != null)
+                                      ElevatedButton.icon(
+                                        onPressed: widget.onRevive,
+                                        icon: const Icon(Icons.ondemand_video, color: Colors.white),
+                                        label: const Text('Revivir', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF00E676),
+                                        ),
+                                      ),
+                                    ElevatedButton(
+                                      onPressed: widget.onRetry,
+                                      child: Text(context.t('retry')),
+                                    ),
+                                  ] else
+                                    ElevatedButton(
+                                      onPressed: widget.onResume,
+                                      child: Text(context.t('resume')),
+                                    ),
+                                  OutlinedButton(
+                                    onPressed: widget.onMenu,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.white70,
+                                      side: const BorderSide(color: Colors.white30),
+                                    ),
+                                    child: Text(context.t('menu')),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          );
-        },
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          const BannerAdWidget(),
+        ],
       ),
     );
   }

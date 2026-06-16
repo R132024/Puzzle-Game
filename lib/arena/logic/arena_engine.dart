@@ -58,6 +58,9 @@ class ArenaEngine implements GameEngine {
     pendingGarbage += lines;
   }
 
+  @override
+  double reviveCountdown = 0.0;
+
   // ─── State ──────────────────────────────────────────────────
 
   @override
@@ -151,8 +154,41 @@ class ArenaEngine implements GameEngine {
   }
 
   @override
+  void revive() {
+    if (state.status != GameStatus.gameOver) return;
+    
+    // Clear bottom 30 rows of sand (around 25% of the arena)
+    final clearHeight = 30;
+    
+    for (int r = sandGrid.rows - clearHeight; r < sandGrid.rows; r++) {
+      for (int c = 0; c < sandGrid.cols; c++) {
+        sandGrid.setCell(r, c, null);
+      }
+    }
+    
+    // Shift everything else down
+    for (int r = sandGrid.rows - clearHeight - 1; r >= 0; r--) {
+      for (int c = 0; c < sandGrid.cols; c++) {
+        final cell = sandGrid.getCell(r, c);
+        sandGrid.setCell(r, c, null);
+        sandGrid.setCell(r + clearHeight, c, cell);
+      }
+    }
+
+    reviveCountdown = 3.99;
+    state = state.copyWith(status: GameStatus.playing);
+    _spawnPiece();
+  }
+
+  @override
   void update(double dt) {
     if (state.status != GameStatus.playing) return;
+
+    if (reviveCountdown > 0) {
+      reviveCountdown -= dt;
+      if (reviveCountdown < 0) reviveCountdown = 0;
+      return; // Pause the game loop while counting down
+    }
 
     state = state.copyWith(elapsedSeconds: state.elapsedSeconds + dt);
 
@@ -370,8 +406,9 @@ class ArenaEngine implements GameEngine {
         
         // Combo damage
         if (currentCombo > 0) {
-          if (currentCombo >= 1 && currentCombo <= 3) damage += 1;
-          else if (currentCombo >= 4) damage += 2;
+          if (currentCombo >= 1 && currentCombo <= 3) {
+            damage += 1;
+          } else if (currentCombo >= 4) damage += 2;
         }
         
         if (damage > 0) {
@@ -502,8 +539,9 @@ class ArenaEngine implements GameEngine {
 
   @override
   void holdPiece() {
-    if (state.status != GameStatus.playing || activePiece == null || !canHold)
+    if (state.status != GameStatus.playing || activePiece == null || !canHold) {
       return;
+    }
 
     final currentShape = activePiece!.shape;
     final currentColor = activePiece!.colorIndex;

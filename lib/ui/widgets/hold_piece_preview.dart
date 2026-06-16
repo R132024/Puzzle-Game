@@ -3,7 +3,6 @@ import 'package:cubix_blast/ui/widgets/block_painter_utils.dart';
 import 'package:cubix_blast/core/piece.dart';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/core/score_manager.dart';
-import '../theme/app_theme.dart';
 import 'dart:ui';
 
 /// Shows a mini preview of the held piece.
@@ -88,7 +87,12 @@ class _HoldPiecePainter extends CustomPainter {
         cellSize - 2,
         cellSize - 2,
       );
-      BlockPainterUtils.drawBlock(canvas: canvas, rect: rect, color: color);
+      BlockPainterUtils.drawBlock(
+        canvas: canvas,
+        rect: rect,
+        color: color,
+        style: GameThemes.getTheme(ScoreManager.currentTheme).pieceStyle,
+      );
     }
   }
 

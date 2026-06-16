@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../nowplaying_track.dart';
 import 'nowplaying_image_resolver.dart';
@@ -11,6 +10,7 @@ import 'nowplaying_image_resolver.dart';
 class NativeImageResolver implements NowPlayingImageResolver {
   static final RegExp _rationaliseRegExp = RegExp(r' - single|the |and |& |\(.*\)');
 
+  @override
   Future<ImageProvider?> resolve(NowPlayingTrack track) async {
     print('iTunes Resolver called for: ${track.title} - ${track.artist}');
     if (track.hasImage) return null;

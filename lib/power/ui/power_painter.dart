@@ -164,6 +164,7 @@ class PowerPainter extends CustomPainter {
       canvas: canvas,
       rect: rect,
       color: color,
+      style: GameThemes.getTheme(ScoreManager.currentTheme).pieceStyle,
       isGhost: isGhost,
     );
   }

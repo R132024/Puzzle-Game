@@ -1,13 +1,12 @@
 import 'package:cubix_blast/core/i18n.dart';
+import 'package:cubix_blast/core/ad_service.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cubix_blast/classic/logic/classic_engine.dart';
-import 'package:cubix_blast/core/high_score_store.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/audio_service.dart';
 import 'package:cubix_blast/core/music_service.dart';
-import 'dart:ui';
 import 'package:cubix_blast/theme/game_themes.dart';
 import 'package:cubix_blast/classic/ui/classic_painter.dart';
 import 'package:cubix_blast/core/game_engine.dart';
@@ -35,8 +34,8 @@ class _ClassicScreenState extends State<ClassicScreen>
   final ValueNotifier<int> _frameNotifier = ValueNotifier(0);
   final FocusNode _focusNode = FocusNode();
 
-  double _accumulatedPanX = 0;
-  bool _panVerticalTriggered = false;
+  final double _accumulatedPanX = 0;
+  final bool _panVerticalTriggered = false;
 
   bool _initializedLevel = false;
   int _startingLevel = 1;
@@ -293,13 +292,55 @@ class _ClassicScreenState extends State<ClassicScreen>
             ValueListenableBuilder<int>(
               valueListenable: _frameNotifier,
               builder: (context, frame, child) {
+                if (_engine.reviveCountdown > 0) {
+                  return Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    child: Center(
+                      child: Text(
+                        _engine.reviveCountdown.ceil().toString(),
+                        style: TextStyle(
+                          fontSize: 120,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Theme.of(context).colorScheme.primary, 
+                              blurRadius: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
                 if (_engine.state.status == GameStatus.gameOver) {
                   return GameOverModal(
                     state: _engine.state,
                     mode: 'classic',
-                    onRetry: () => _engine.reset(initialLevel: _startingLevel),
-                    onMenu: () => Navigator.of(context).pop(),
+                    onRetry: () {
+                      AdService.instance.showInterstitialIfNeeded();
+                      _engine.reset(initialLevel: _startingLevel);
+                    },
+                    onMenu: () {
+                      AdService.instance.showInterstitialIfNeeded();
+                      Navigator.of(context).pop();
+                    },
                     onResume: () {},
+                    onRevive: () async {
+                      final success = await AdService.instance.showRewardedAd();
+                      if (success) {
+                        _engine.revive();
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Video cancelado o no disponible aún.'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      }
+                    },
                   );
                 } else if (_engine.state.status == GameStatus.paused) {
                   return OverlayMenu(

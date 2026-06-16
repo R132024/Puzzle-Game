@@ -10,6 +10,7 @@ class ScoreManager {
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     coinsNotifier.value = coins;
+    premiumNotifier.value = isPremium;
   }
 
   static int get classicHighScore => _prefs.getInt(_classicKey) ?? 0;
@@ -31,7 +32,22 @@ class ScoreManager {
   static const String _currentThemeKey = 'cubix_current_theme';
   static const String _unlockedThemesKey = 'cubix_unlocked_themes';
 
+  static const String _isPremiumKey = 'cubix_is_premium';
+
   static final ValueNotifier<int> coinsNotifier = ValueNotifier(0);
+  static final ValueNotifier<bool> premiumNotifier = ValueNotifier(false);
+
+  static bool get isPremium => _prefs.getBool(_isPremiumKey) ?? false;
+  static Future<void> setPremium(bool val) async {
+    await _prefs.setBool(_isPremiumKey, val);
+    premiumNotifier.value = val;
+    if (val) {
+      // Si se vuelve Premium, regalar todos los temas
+      await unlockTheme('neon');
+      await unlockTheme('matrix');
+      await unlockTheme('metallic');
+    }
+  }
 
   static int get coins => _prefs.getInt(_coinsKey) ?? 0;
   static Future<void> addCoins(int amount) async {

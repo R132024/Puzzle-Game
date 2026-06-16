@@ -19,6 +19,7 @@ class DefaultNowPlayingImageResolver implements NowPlayingImageResolver {
   final spotifyImageResolver = SpotifyImageResolver();
   final nativeImageResolver = NativeImageResolver();
 
+  @override
   Future<ImageProvider?> resolve(NowPlayingTrack track) async {
     final provider = await spotifyImageResolver.resolve(track);
     if (provider is ImageProvider) return provider;

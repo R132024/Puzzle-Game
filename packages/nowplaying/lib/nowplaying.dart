@@ -3,6 +3,7 @@
 ///
 /// Use a NotificationListenerService for Android; polls the current playing
 /// information from the systemMusicPlayer for iOS
+library;
 
 import 'dart:async';
 import 'dart:io';
@@ -61,7 +62,7 @@ class NowPlaying with WidgetsBindingObserver {
     _controller = StreamController<NowPlayingTrack>.broadcast();
     _controller.add(track);
 
-    this._resolveImages = resolver != null || resolveImages;
+    _resolveImages = resolver != null || resolveImages;
     this.resolver =
         resolver ?? (_resolveImages ? DefaultNowPlayingImageResolver() : null);
 
@@ -192,7 +193,7 @@ class NowPlaying with WidgetsBindingObserver {
   }
 
   bool _shouldNotifyFor(NowPlayingTrack newTrack) {
-    if (newTrack.hasSpotifySource && this.track.isSpotify) return false;
+    if (newTrack.hasSpotifySource && track.isSpotify) return false;
     return true;
   }
 
@@ -212,6 +213,7 @@ class NowPlaying with WidgetsBindingObserver {
   /// Respond to changes in the app lifecycle state, on iOS
   ///
   /// Restart timer if resumed; else cancel it
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshTimer ??= Timer.periodic(_refreshPeriod, _refresh);
@@ -219,7 +221,7 @@ class NowPlaying with WidgetsBindingObserver {
     } else {
       _refreshTimer?.cancel();
       _refreshTimer = null;
-      this.track = NowPlayingTrack.notPlaying;
+      track = NowPlayingTrack.notPlaying;
     }
   }
 }

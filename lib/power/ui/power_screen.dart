@@ -1,4 +1,5 @@
 import 'package:cubix_blast/core/i18n.dart';
+import 'package:cubix_blast/core/ad_service.dart';
 import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -32,9 +33,6 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
   late final PowerEngine _engine;
   final ValueNotifier<int> _frameNotifier = ValueNotifier(0);
   final FocusNode _focusNode = FocusNode();
-
-  double _accumulatedPanX = 0;
-  bool _panVerticalTriggered = false;
 
   bool _initializedLevel = false;
   int _startingLevel = 1;
@@ -181,7 +179,6 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
         final double canvasW = (maxH * 0.5).clamp(0.0, maxW * 0.95).toDouble();
         final canvasH = canvasW * 2; // 10:20 ratio
 
-        final theme = GameThemes.getTheme(ScoreManager.currentTheme);
         final currentColor = Theme.of(context).colorScheme.primary;
         final tempo = 1.0 + (_engine.state.level * 0.15);
 
@@ -196,26 +193,31 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
             SafeArea(
               child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      HoldPiecePreview(
-                        piece: _engine.heldPiece,
-                        canHold: _engine.canHold,
+                ValueListenableBuilder<int>(
+                  valueListenable: _frameNotifier,
+                  builder: (context, frame, _) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          HoldPiecePreview(
+                            piece: _engine.heldPiece,
+                            canHold: _engine.canHold,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ScoreBoard(
+                              state: _engine.state,
+                              highScore: _engine.highScore,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          NextPiecePreview(piece: _engine.nextPiece),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ScoreBoard(
-                          state: _engine.state,
-                          highScore: _engine.highScore,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      NextPiecePreview(piece: _engine.nextPiece),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 Expanded(
                   child: Center(
@@ -283,13 +285,55 @@ class _PowerScreenState extends State<PowerScreen> with WidgetsBindingObserver {
             ValueListenableBuilder<int>(
               valueListenable: _frameNotifier,
               builder: (context, frame, child) {
+                if (_engine.reviveCountdown > 0) {
+                  return Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    child: Center(
+                      child: Text(
+                        _engine.reviveCountdown.ceil().toString(),
+                        style: TextStyle(
+                          fontSize: 120,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Theme.of(context).colorScheme.primary, 
+                              blurRadius: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
                 if (_engine.state.status == GameStatus.gameOver) {
                   return GameOverModal(
                     state: _engine.state,
                     mode: 'power',
-                    onRetry: () => _engine.reset(initialLevel: _startingLevel),
-                    onMenu: () => Navigator.of(context).pop(),
+                    onRetry: () {
+                      AdService.instance.showInterstitialIfNeeded();
+                      _engine.reset(initialLevel: _startingLevel);
+                    },
+                    onMenu: () {
+                      AdService.instance.showInterstitialIfNeeded();
+                      Navigator.of(context).pop();
+                    },
                     onResume: () {},
+                    onRevive: () async {
+                      final success = await AdService.instance.showRewardedAd();
+                      if (success) {
+                        _engine.revive();
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Video cancelado o no disponible aún.'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      }
+                    },
                   );
                 } else if (_engine.state.status == GameStatus.paused) {
                   return OverlayMenu(

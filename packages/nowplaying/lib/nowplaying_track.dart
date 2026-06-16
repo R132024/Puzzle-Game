@@ -39,8 +39,9 @@ class NowPlayingTrack {
   /// If the track is not playing: how much had been played at the time the state
   /// was recorded
   Duration get progress {
-    if (state == NowPlayingState.playing)
+    if (state == NowPlayingState.playing) {
       return position + DateTime.now().difference(createdAt);
+    }
     return position;
   }
 
@@ -54,17 +55,19 @@ class NowPlayingTrack {
 
   /// An image representing the app playing the track
   ImageProvider? get icon {
-    if (isIOS)
+    if (isIOS) {
       return const AssetImage('assets/applemusic.png', package: 'nowplaying');
-    if (source == 'com.acmeandroid.listen')
+    }
+    if (source == 'com.acmeandroid.listen') {
       return const AssetImage('assets/listenapp.png', package: 'nowplaying');
-    return _icons[this.source];
+    }
+    return _icons[source];
   }
 
   final isSpotify = false;
   bool get hasSpotifySource => source == 'com.spotify.music';
 
-  bool get hasIcon => isIOS || _icons.containsKey(this.source);
+  bool get hasIcon => isIOS || _icons.containsKey(source);
   bool get hasImage => image != null;
 
   /// true if the image is being resolved, else false
@@ -80,9 +83,9 @@ class NowPlayingTrack {
   @override
   operator ==(other) =>
       other is NowPlayingTrack &&
-      other.id == this.id &&
-      other.progress == this.progress &&
-      other.state == this.state;
+      other.id == id &&
+      other.progress == progress &&
+      other.state == state;
 
   /// The image for the track, probably album art
   ///
@@ -106,8 +109,8 @@ class NowPlayingTrack {
     this.source,
     this.position = Duration.zero,
     DateTime? createdAt,
-  })  : this.id = id ?? Uuid().v4(),
-        this.createdAt = createdAt ?? DateTime.now();
+  })  : id = id ?? Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now();
 
   /// Creates a track from json
   ///
@@ -151,23 +154,24 @@ class NowPlayingTrack {
 
   /// Creates a copy of a track, largely so that the stream knows it's mutated
   NowPlayingTrack copy() => NowPlayingTrack(
-        id: this.id,
-        title: this.title,
-        album: this.album,
-        artist: this.artist,
-        duration: this.duration,
-        position: this.position,
-        state: this.state,
-        source: this.source,
-        createdAt: this.createdAt,
+        id: id,
+        title: title,
+        album: album,
+        artist: artist,
+        duration: duration,
+        position: position,
+        state: state,
+        source: source,
+        createdAt: createdAt,
       );
 
   bool get isNotReported => this == notPlaying;
   bool get isReported => !isNotReported;
-  bool get isPlaying => this.state == NowPlayingState.playing;
-  bool get isPaused => this.state == NowPlayingState.paused;
-  bool get isStopped => this.state == NowPlayingState.stopped;
+  bool get isPlaying => state == NowPlayingState.playing;
+  bool get isPaused => state == NowPlayingState.paused;
+  bool get isStopped => state == NowPlayingState.stopped;
 
+  @override
   String toString() => isStopped
       ? 'NowPlaying: -silence-'
       : 'NowPlaying:'
@@ -182,7 +186,7 @@ class NowPlayingTrack {
   Future<void> resolveImage() async {
     if (imageNeedsResolving && !hasImage) {
       _resolutionState = _NowPlayingImageResolutionState.resolving;
-      this.image = await NowPlaying.instance.resolver?.resolve(this);
+      image = await NowPlaying.instance.resolver?.resolve(this);
       _resolutionState = _NowPlayingImageResolutionState.resolved;
     }
   }
@@ -195,7 +199,7 @@ class _LruMap<K, V> {
 
   _LruMap({this.size = 5}) : assert(size > 0);
 
-  operator [](K key) => _map[key];
+  V? operator [](K key) => _map[key];
 
   void operator []=(K key, V value) {
     _map[key] = value;

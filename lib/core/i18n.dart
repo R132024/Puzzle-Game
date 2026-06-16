@@ -91,7 +91,7 @@ class LocaleScope extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: LocaleController.instance.localeNotifier,
-      builder: (context, _, __) => builder(context),
+      builder: (context, _, _) => builder(context),
     );
   }
 }
@@ -138,7 +138,7 @@ const Map<String, Map<String, String>> _strings = {
     'title_online': 'ONLINE 1v1',
     'title_settings': 'CONFIGURACIÓN',
     'desc_classic': 'El rompecabezas original. Limpia líneas sin presión de tiempo.',
-    'desc_arena': '¡Compite contra el reloj! Gana puntos extra por combos rápidos.',
+    'desc_arena': '¡Sobrevive a la física de arena! Conecta colores tocando bloques que caen como polvo.',
     'desc_power': 'Usa habilidades especiales como Láser y Bomba para destruir bloques.',
     'desc_multi': 'Desafía a tus amigos en partidas locales y demuestra quién manda.',
     'desc_online': 'Reta a cualquiera por internet en un duelo 1v1 en tiempo real.',
@@ -211,7 +211,7 @@ const Map<String, Map<String, String>> _strings = {
     'title_online': 'ONLINE 1v1',
     'title_settings': 'SETTINGS',
     'desc_classic': 'The original puzzle. Clear lines with no time pressure.',
-    'desc_arena': 'Race against the clock! Earn extra points for fast combos.',
+    'desc_arena': 'Survive the sand physics! Match colors from blocks that fall like dust.',
     'desc_power': 'Use special abilities like Laser and Bomb to smash blocks.',
     'desc_multi': 'Challenge your friends in local matches and show who rules.',
     'desc_online': 'Challenge anyone over the internet in a real-time 1v1 duel.',
@@ -283,7 +283,7 @@ const Map<String, Map<String, String>> _strings = {
     'title_online': 'ONLINE 1v1',
     'title_settings': 'CONFIGURAÇÕES',
     'desc_classic': 'O quebra-cabeça original. Limpe linhas sem pressão de tempo.',
-    'desc_arena': 'Corra contra o relógio! Ganhe pontos extras por combos rápidos.',
+    'desc_arena': 'Sobreviva à física da areia! Conecte cores de blocos que caem como pó.',
     'desc_power': 'Use habilidades especiais como Laser e Bomba para destruir blocos.',
     'desc_multi': 'Desafie seus amigos em partidas locais e mostre quem manda.',
     'desc_online': 'Desafie qualquer um pela internet em um duelo 1v1 em tempo real.',
@@ -355,7 +355,7 @@ const Map<String, Map<String, String>> _strings = {
     'title_online': '在线 1v1',
     'title_settings': '设置',
     'desc_classic': '原汁原味的拼图。无时间压力地消除行。',
-    'desc_arena': '与时间赛跑！快速连击可获得额外分数。',
+    'desc_arena': '在沙子的物理中生存下来！通过连接像沙子一样落下的方块的颜色。',
     'desc_power': '使用激光和炸弹等特殊技能来粉碎方块。',
     'desc_multi': '在本地比赛中挑战你的朋友，证明谁是王者。',
     'desc_online': '通过网络与任何人进行实时 1v1 对决。',
@@ -427,7 +427,7 @@ const Map<String, Map<String, String>> _strings = {
     'title_online': 'ОНЛАЙН 1 на 1',
     'title_settings': 'НАСТРОЙКИ',
     'desc_classic': 'Оригинальная головоломка. Убирайте линии без спешки.',
-    'desc_arena': 'Гонка со временем! Получайте очки за быстрые комбо.',
+    'desc_arena': 'Выживите в песочной физике! Соединяйте цвета из блоков, которые падают как пыль.',
     'desc_power': 'Используйте лазер и бомбу, чтобы крушить блоки.',
     'desc_multi': 'Бросьте вызов друзьям в локальных матчах.',
     'desc_online': 'Сразитесь с кем угодно по сети в дуэли 1 на 1 в реальном времени.',
