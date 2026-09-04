@@ -7,7 +7,8 @@ import 'ui/screens/home_screen.dart';
 import 'classic/ui/classic_screen.dart';
 import 'arena/ui/arena_screen.dart';
 import 'power/ui/power_screen.dart';
-import 'ui/screens/shop_screen.dart';
+import 'package:cubix_blast/ui/screens/shop_screen.dart';
+import 'package:cubix_blast/casino/ui/casino_screen.dart';
 import 'package:cubix_blast/core/score_manager.dart';
 import 'package:cubix_blast/core/music_service.dart';
 import 'package:cubix_blast/core/audio_service.dart';
@@ -16,6 +17,7 @@ import 'package:cubix_blast/multiplayer/ui/multiplayer_screen.dart';
 
 import 'package:cubix_blast/core/player_manager.dart';
 import 'package:cubix_blast/core/mission_manager.dart';
+import 'package:cubix_blast/core/daily_rewards_manager.dart';
 import 'package:cubix_blast/core/iap_service.dart';
 import 'package:cubix_blast/core/i18n.dart';
 import 'package:cubix_blast/online/ui/online_lobby_screen.dart';
@@ -29,6 +31,7 @@ void main() async {
   await ScoreManager.init();
   await PlayerManager.init();
   await MissionManager.init();
+  await DailyRewardsManager.init();
   await IAPService.instance.init();
   await LocaleController.instance.init();
   // Firebase es necesario solo para el modo Online (signaling). Si no está
@@ -65,6 +68,7 @@ class CubixBlastApp extends StatelessWidget {
         routes: {
           '/': (_) => const HomeScreen(),
           '/classic': (_) => const ClassicScreen(),
+          '/casino': (_) => const CasinoScreen(),
           '/arena': (_) => const ArenaScreen(),
           '/power': (_) => const PowerScreen(),
           '/multiplayer_lobby': (_) => const MultiplayerLobbyScreen(),

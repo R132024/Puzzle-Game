@@ -6,7 +6,7 @@ library;
 import 'piece.dart';
 
 /// Running status of a game session.
-enum GameStatus { ready, playing, paused, gameOver }
+enum GameStatus { ready, playing, paused, gameOver, roundCleared }
 
 class GameState {
   const GameState({

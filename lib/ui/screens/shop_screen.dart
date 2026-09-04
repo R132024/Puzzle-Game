@@ -63,7 +63,6 @@ class _ShopScreenState extends State<ShopScreen> {
       ),
       body: Column(
         children: [
-          if (!ScoreManager.isPremium) _buildPremiumBanner(),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),

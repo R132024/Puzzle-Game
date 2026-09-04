@@ -10,6 +10,8 @@ import 'package:cubix_blast/core/mission_manager.dart';
 import 'package:cubix_blast/core/music_service.dart';
 import 'package:cubix_blast/ui/widgets/radial_menu.dart';
 import 'package:cubix_blast/ui/widgets/particles_bg.dart';
+import 'package:cubix_blast/ui/widgets/daily_rewards_modal.dart';
+import 'package:cubix_blast/core/daily_rewards_manager.dart';
 import 'package:cubix_blast/core/i18n.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
@@ -59,6 +61,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadRecords();
     _initDeepLinks();
     MusicService.instance.currentTrack.addListener(_onMusicTrackChanged);
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (DailyRewardsManager.canClaimTodayNotifier.value && mounted) {
+        _showDailyRewards();
+      }
+    });
+  }
+
+  void _showDailyRewards() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'daily_rewards',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return const DailyRewardsModal();
+      },
+    );
   }
 
   void _onMusicTrackChanged() {
@@ -708,11 +729,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     },
                     onRandomPressed: () {
                       AudioService.instance.playBoton();
-                      final currentMod = _absoluteModeIndex % 5;
-                      final realCurrentMod = currentMod < 0 ? currentMod + 5 : currentMod;
+                      final currentMod = _absoluteModeIndex % 6;
+                      final realCurrentMod = currentMod < 0 ? currentMod + 6 : currentMod;
                       final targetMod = Random().nextInt(3);
                       int steps = targetMod - realCurrentMod;
-                      if (steps <= 0) steps += 5;
+                      if (steps <= 0) steps += 6;
                       setState(() => _absoluteModeIndex += steps);
                     },
                     items: _getMenuItems(),
@@ -746,11 +767,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         },
                         onRandomPressed: () {
                           AudioService.instance.playBoton();
-                          final currentMod = _absoluteModeIndex % 5;
-                          final realCurrentMod = currentMod < 0 ? currentMod + 5 : currentMod;
+                          final currentMod = _absoluteModeIndex % 6;
+                          final realCurrentMod = currentMod < 0 ? currentMod + 6 : currentMod;
                           final targetMod = Random().nextInt(3);
                           int steps = targetMod - realCurrentMod;
-                          if (steps <= 0) steps += 5;
+                          if (steps <= 0) steps += 6;
                           setState(() => _absoluteModeIndex += steps);
                         },
                         items: _getMenuItems(),
@@ -780,6 +801,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         highlightColor: const Color(0xFF00B8D4),
       ),
       RadialMenuItem(
+        title: 'Casino',
+        icon: Icons.casino,
+        baseColor: const Color(0xFF00E676),
+        highlightColor: const Color(0xFF00C853),
+      ),
+      RadialMenuItem(
         title: context.t('mode_arena'),
         icon: Icons.hourglass_bottom,
         baseColor: const Color(0xFFFF3D00),
@@ -798,7 +825,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         highlightColor: const Color(0xFFAA00FF),
       ),
       RadialMenuItem(
-        title: context.t('mode_settings'),
+        title: context.t('mode_config'),
         icon: Icons.settings,
         baseColor: Colors.grey,
         highlightColor: Colors.white,
@@ -814,6 +841,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         'desc': context.t('desc_classic'),
         'color': const Color(0xFF00E5FF),
         'route': '/classic',
+      },
+      {
+        'title': 'Modo Casino',
+        'desc': 'Sobrevive rondas, gana monedas y compra amuletos locos.',
+        'color': const Color(0xFF00E676),
+        'route': '/casino',
       },
       {
         'title': context.t('title_arena'),
@@ -901,7 +934,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             const SizedBox(height: 24),
             
             // Selector de Nivel o Sliders de Audio
-            if (modIndex == 4) ...[
+            if (modIndex == 5) ...[
               Text(
                 context.t('music'),
                 textAlign: TextAlign.center,
@@ -949,7 +982,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   height: 1.5,
                 ),
               ),
-            ] else if (modIndex == 3) ...[
+            ] else if (modIndex == 4) ...[
               // Panel Multijugador: acceso al modo Online 1v1 (Firebase + WebRTC)
               const SizedBox(height: 8),
               OutlinedButton.icon(
@@ -989,7 +1022,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-            ] else if (modIndex != 3) ...[
+            ] else if (modIndex != 4) ...[
               Text(
                 context.t('initial_level'),
                 textAlign: TextAlign.center,
@@ -1045,11 +1078,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             const SizedBox(height: 24),
 
             // Botón Jugar
-            if (modIndex != 4) ...[
+            if (modIndex != 5) ...[
               ElevatedButton(
                 onPressed: () {
                   AudioService.instance.playBoton();
-                  if (modIndex == 3) {
+                  if (modIndex == 4) {
                     Navigator.pushNamed(context, info['route'] as String);
                   } else {
                     Navigator.pushNamed(context, info['route'] as String, arguments: {'initialLevel': _startingLevel}).then((_) => _loadRecords());
@@ -1071,7 +1104,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     const Icon(Icons.play_arrow, size: 28),
                     const SizedBox(width: 8),
                     Text(
-                      modIndex == 3 ? 'Local 1v1' : context.t('play'),
+                      modIndex == 4 ? 'Local 1v1' : context.t('play'),
                       style: GoogleFonts.orbitron(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -1179,7 +1212,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ],
             ).createShader(bounds),
             child: Text(
-              'CUBIXBLAST',
+              'TETRIX ULTIMATE',
               maxLines: 1,
               style: GoogleFonts.orbitron(
                 fontSize: 40,
